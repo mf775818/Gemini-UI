@@ -213,18 +213,7 @@
 
     /* ── 表格（通用：工業級修復 Hover 重繪 Bug / 格線長駐） ── */
     /* 1. 父容器控制水平滾動，避免 table 自我 block 化 */
-    .table-block {
-        overflow-x: auto !important;
-        width: 100% !important; max-width: 100% !important;
-        box-sizing: border-box !important;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.3);
-        border: 2px solid var(--border-color) !important;
-        margin: var(--spacing-unit) 0 !important;
-        background: var(--bg-primary);
-    }
-    .model-response-text > div:has(table),
-    .markdown-renderer > div:has(table) {
+    .table-block, .tm-table-wrapper {
         overflow-x: auto !important;
         width: 100% !important; max-width: 100% !important;
         box-sizing: border-box !important;
@@ -553,10 +542,8 @@
         transition: opacity 0.2s ease;
         z-index: 20;
     }
-    .table-block:hover .tm-table-toolbar {
-        opacity: 1;
-    }
-    .model-response-text > div:has(table):hover .tm-table-toolbar {
+    .table-block:hover .tm-table-toolbar, 
+    .tm-table-wrapper:hover .tm-table-toolbar {
         opacity: 1;
     }
 
@@ -1999,11 +1986,28 @@
 
         scanTables() {
             try {
-                // 掃描被包裹的表格容器
-                document.querySelectorAll('.model-response-text > div, .tm-preview-view, .table-block').forEach(el => {
-                    if (el.classList.contains('table-block') || el.querySelector('table')) {
-                        this.processTable(el);
+                // 精確尋找所有表格元素並進行包裹，避免在手機端將整個對話容器判斷為表格
+                document.querySelectorAll('.model-response-text table, .tm-preview-view table, .markdown-renderer table, .table-block table').forEach(table => {
+                    let container = table.closest('.tm-table-wrapper') || table.closest('.table-block');
+                    if (!container) {
+                        const parent = table.parentElement;
+                        // 如果它被放在一個單純為了包裝 table 的 div 裡 (例如 gemini 的預設)，可以直接加 class
+                        // 並且避免它是 .model-response-text 或 .markdown-renderer 母容器
+                        if (parent && parent.tagName === 'DIV' && 
+                            !parent.classList.contains('model-response-text') && 
+                            !parent.classList.contains('markdown-renderer') && 
+                            parent.children.length === 1) {
+                            parent.classList.add('tm-table-wrapper');
+                            container = parent;
+                        } else {
+                            // 否則自行建立容器包裹
+                            container = document.createElement('div');
+                            container.className = 'tm-table-wrapper';
+                            table.parentNode.insertBefore(container, table);
+                            container.appendChild(table);
+                        }
                     }
+                    this.processTable(container);
                 });
             } catch (e) {
                 console.warn('[Gemini Ultimate] scanTables error', e);
