@@ -213,9 +213,18 @@
 
     /* ── 表格（通用：工業級修復 Hover 重繪 Bug / 格線長駐） ── */
     /* 1. 父容器控制水平滾動，避免 table 自我 block 化 */
-    .model-response-text > div:has(table),
-    .markdown-renderer > div:has(table),
     .table-block {
+        overflow-x: auto !important;
+        width: 100% !important; max-width: 100% !important;
+        box-sizing: border-box !important;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.3);
+        border: 2px solid var(--border-color) !important;
+        margin: var(--spacing-unit) 0 !important;
+        background: var(--bg-primary);
+    }
+    .model-response-text > div:has(table),
+    .markdown-renderer > div:has(table) {
         overflow-x: auto !important;
         width: 100% !important; max-width: 100% !important;
         box-sizing: border-box !important;
@@ -449,7 +458,7 @@
 
     /* 預覽容器 */
     .gemini-preview-container {
-        width: 100%; margin-top: 16px;
+        width: 100%; max-width: 100%; box-sizing: border-box; margin-top: 16px;
         border: 2px solid #E5E7EB; border-radius: 16px; overflow: hidden;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 1px 8px rgba(0,0,0,0.06);
         background-color: #fff; position: relative;
@@ -459,7 +468,7 @@
         from { opacity: 0; transform: translateY(-20px) scale(0.95); }
         to   { opacity: 1; transform: translateY(0)    scale(1);    }
     }
-    .gemini-preview-iframe    { width: 100%; height: 650px; border: none; display: block; background: linear-gradient(135deg,#F9FAFB 0%,#F3F4F6 100%); }
+    .gemini-preview-iframe    { width: 100%; max-width: 100%; box-sizing: border-box; height: 650px; border: none; display: block; background: linear-gradient(135deg,#F9FAFB 0%,#F3F4F6 100%); }
     .gemini-preview-controls  { padding: 16px 20px; background: linear-gradient(135deg,#1E293B 0%,#334155 100%); font-size: 14px; display: flex; gap: 12px; align-items: center; color: #fff; flex-wrap: wrap; }
     .gemini-control-button    { padding: 8px 16px; background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.3s ease; -webkit-tap-highlight-color: transparent; backdrop-filter: blur(12px); }
     .gemini-control-button:hover, .gemini-control-button:active { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
@@ -544,7 +553,9 @@
         transition: opacity 0.2s ease;
         z-index: 20;
     }
-    .table-block:hover .tm-table-toolbar, 
+    .table-block:hover .tm-table-toolbar {
+        opacity: 1;
+    }
     .model-response-text > div:has(table):hover .tm-table-toolbar {
         opacity: 1;
     }
@@ -1987,10 +1998,16 @@
         },
 
         scanTables() {
-            // 掃描被包裹的表格容器
-            document.querySelectorAll('.model-response-text > div:has(table), .table-block').forEach(el => {
-                this.processTable(el);
-            });
+            try {
+                // 掃描被包裹的表格容器
+                document.querySelectorAll('.model-response-text > div, .tm-preview-view, .table-block').forEach(el => {
+                    if (el.classList.contains('table-block') || el.querySelector('table')) {
+                        this.processTable(el);
+                    }
+                });
+            } catch (e) {
+                console.warn('[Gemini Ultimate] scanTables error', e);
+            }
         }
     };
 
