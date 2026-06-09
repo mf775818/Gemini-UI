@@ -448,7 +448,7 @@
 
     /* 預覽容器 */
     .gemini-preview-container {
-        width: 100%; max-width: 100%; box-sizing: border-box; margin-top: 16px;
+        width: 85%; max-width: 100%; box-sizing: border-box; margin-top: 16px;
         border: 2px solid #E5E7EB; border-radius: 16px; overflow: hidden;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 1px 8px rgba(0,0,0,0.06);
         background-color: #fff; position: relative;
@@ -543,7 +543,7 @@
         transition: opacity 0.2s ease;
         z-index: 20;
     }
-    .table-block:hover .tm-table-toolbar, 
+    .table-block:hover .tm-table-toolbar,
     .tm-table-wrapper:hover .tm-table-toolbar {
         opacity: 1;
     }
@@ -586,7 +586,7 @@
         display: block;
         animation: tmFadeInUp 0.3s forwards;
     }
-    
+
     /* Iframe 渲染模式 Mermaid / HTML */
     .tm-state-iframe-preview .tm-raw-view { display: none; }
     .tm-state-iframe-preview .tm-preview-view { display: none !important; }
@@ -642,7 +642,7 @@
                 const code = await fetchResource('https://cdn.jsdelivr.net/npm/marked/marked.min.js', 'GET', null, 'text');
                 const p = getTrustedPolicy();
                 const safeCode = p ? p.createScript(code + ';\nwindow.marked = marked;') : (code + ';\nwindow.marked = marked;');
-                
+
                 const script = document.createElement('script');
                 // try to copy nonce to bypass strict CSP if possible
                 const existingScript = document.querySelector('script[nonce]');
@@ -778,7 +778,7 @@
     // ============================================
     function createStandaloneMermaidHTML(mermaidCode, libCode) {
         const safeCode = JSON.stringify(mermaidCode);
-        
+
         // 將核心庫轉為 inline script 避免 iOS Safari Blob iframe 的跨域存取阻擋
         const inlineLibHTML = libCode ? `<script>${libCode.replace(/<\/script>/gi, '<\\/script>')}</script>` : '';
 
@@ -1238,7 +1238,7 @@
         async csv(content, container, previewDiv) {
             const rows = DependencyManager.parseCSV(content);
             if (rows.length === 0) throw new Error('CSV 為空');
-            
+
             let tableHtml = '<div class="table-block new-table-style"><table>';
             rows.forEach((row, index) => {
                 tableHtml += '<tr>';
@@ -1475,18 +1475,18 @@
         // 建立 View Container 包裹原有的 pre
         const preEl = codeElement.closest('pre');
         if (!preEl || preEl.tagName !== 'PRE') return;
-        
+
         if (!preEl.parentElement.classList.contains('tm-view-container')) {
             const viewContainer = document.createElement('div');
             viewContainer.className = 'tm-view-container';
             preEl.parentNode.insertBefore(viewContainer, preEl);
             viewContainer.appendChild(preEl);
             preEl.classList.add('tm-raw-view');
-            
+
             const previewDiv = document.createElement('div');
             previewDiv.className = 'tm-preview-view markdown-renderer'; // 套用 markdown 樣式
             viewContainer.appendChild(previewDiv);
-            
+
             viewContainer.dataset.previewDivId = 'true';
         }
 
@@ -1508,7 +1508,7 @@
                 button.innerHTML = '⏳ 處理中...';
                 try {
                     const result = await RendererStrategy[type](content, codeBlockContainer, previewDiv);
-                    
+
                     if (result === 'INLINE') {
                         // Markdown 或 CSV：隱藏代碼，顯示內聯 Markdown/CSV 預覽
                         viewContainer.classList.add('tm-state-inline-preview');
@@ -1516,7 +1516,7 @@
                     } else {
                         // HTML 或 Mermaid：隱藏代碼，隱藏內聯預覽，加入 Iframe 組件
                         viewContainer.classList.add('tm-state-iframe-preview');
-                        
+
                         const previewContainer = document.createElement('div');
                         previewContainer.className = 'gemini-preview-container';
 
@@ -1525,7 +1525,7 @@
 
                         const statusContainer = document.createElement('div');
                         statusContainer.className = 'gemini-preview-overlay';
-                        
+
                         const openInTabBtn = document.createElement('button');
                         openInTabBtn.className = 'gemini-control-button';
                         openInTabBtn.innerHTML = '🚀 全螢幕';
@@ -1542,14 +1542,14 @@
                         viewContainer.appendChild(previewContainer);
 
                         iframe.src = result; // result is blobUrl
-                        
+
                         openInTabBtn.onclick = () => {
                             GM_openInTab(result, { active: true });
                         };
 
                         statusContainer.innerHTML = '<span class="gemini-preview-success">✅ 渲染完成</span>';
                         previewDiv.dataset.blobUrl = result;
-                        
+
                         button.innerHTML = `❌ 關閉預覽`;
                     }
                     button.dataset.mode = 'preview';
@@ -1564,13 +1564,13 @@
                 viewContainer.classList.remove('tm-state-inline-preview', 'tm-state-iframe-preview');
                 button.dataset.mode = 'raw';
                 button.innerHTML = `${btnConfig.icon} ${btnConfig.text}`;
-                
+
                 // 清理 Blob 記憶體
                 if (previewDiv.dataset.blobUrl) {
                     URL.revokeObjectURL(previewDiv.dataset.blobUrl);
                     delete previewDiv.dataset.blobUrl;
                 }
-                previewDiv.innerHTML = ''; 
+                previewDiv.innerHTML = '';
                 const iframePreview = viewContainer.querySelector('.gemini-preview-container');
                 if (iframePreview) iframePreview.remove();
             }
@@ -1679,6 +1679,18 @@
             } catch (e) { log('Base64 encode error:', e); return null; }
         },
 
+        /* 開啟網頁（相容手機與彈窗攔截） */
+        openUrl(url) {
+            if (CONFIG.IS_MOBILE) {
+                window.location.href = url;
+            } else if (typeof GM_openInTab !== 'undefined') {
+                GM_openInTab(url, { active: true });
+            } else {
+                const win = window.open(url, '_blank');
+                if (!win) window.location.href = url;
+            }
+        },
+
         /* 取得代碼文字 */
         getCodeText(block) {
             const el = block.tagName === 'CODE' ? block : (block.querySelector('code') || block);
@@ -1772,7 +1784,7 @@
                         };
                         const encoded = Utils.base64UrlEncode(JSON.stringify(payload));
                         if (encoded) {
-                            window.open(`https://mermaid.live/edit#base64:${encoded}`, '_blank');
+                            Utils.openUrl(`https://mermaid.live/edit#base64:${encoded}`);
                             Utils.showToast('✓ Mermaid Live 已開啟');
                         } else throw new Error('編碼失敗');
                     } catch (e) {
@@ -1863,7 +1875,6 @@
                 if (!overlay) {
                     overlay = document.createElement('div');
                     overlay.className = 'tm-overlay';
-                    overlay.style.paddingRight = isMermaid && !overlay.querySelector('.tm-btn-mermaid')?'10%':'2.5%';
                     overlay.setAttribute(ATTR_CONTAINER_PROCESSED, 'true');
                     overlay.setAttribute('role', 'group');
                     overlay.setAttribute('aria-label', '代碼操作按鈕');
@@ -1981,7 +1992,7 @@
                     csv.push(rowData.join(','));
                 }
                 const csvString = csv.join('\n');
-                
+
                 // 行動端優先嘗試使用 navigator.clipboard 解決 GM_setClipboard 可能的失效問題
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(csvString).then(() => {
@@ -2004,7 +2015,7 @@
 
         processTable(tableContainer) {
             if (tableContainer.hasAttribute(this.tableProcessedAttr)) return;
-            
+
             const table = tableContainer.querySelector('table');
             if (!table) return;
 
@@ -2019,7 +2030,7 @@
             // 建立複製按鈕
             const copyBtn = Components.createButton('tm-btn-fold', '📋', '複製內容', () => this.copyTableText(table));
             copyBtn.classList.replace('tm-btn-fold', 'tm-btn-mermaid'); // 借用你既有的樣式
-            
+
             // 建立匯出按鈕
             const exportBtn = Components.createButton('tm-btn-fold', '📥', '匯出 CSV', () => this.exportToCSV(table));
 
@@ -2039,9 +2050,9 @@
                         const parent = table.parentElement;
                         // 如果它被放在一個單純為了包裝 table 的 div 裡 (例如 gemini 的預設)，可以直接加 class
                         // 並且避免它是 .model-response-text 或 .markdown-renderer 母容器
-                        if (parent && parent.tagName === 'DIV' && 
-                            !parent.classList.contains('model-response-text') && 
-                            !parent.classList.contains('markdown-renderer') && 
+                        if (parent && parent.tagName === 'DIV' &&
+                            !parent.classList.contains('model-response-text') &&
+                            !parent.classList.contains('markdown-renderer') &&
                             parent.children.length === 1) {
                             parent.classList.add('tm-table-wrapper');
                             container = parent;
@@ -2108,7 +2119,7 @@
                 if (isMermaidCode(sel)) {
                     const encoded = Utils.base64UrlEncode(JSON.stringify({ code: sel, mermaid: { theme: 'dark' } }));
                     if (encoded) {
-                        window.open(`https://mermaid.live/edit#base64:${encoded}`, '_blank');
+                        Utils.openUrl(`https://mermaid.live/edit#base64:${encoded}`);
                         Utils.showToast('✓ 快捷鍵啟動 (Alt+M)');
                     }
                 }
