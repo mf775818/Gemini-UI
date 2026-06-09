@@ -776,8 +776,11 @@
     // ============================================
     // Mermaid 互動式 HTML (修復 iOS 版)
     // ============================================
-    function createStandaloneMermaidHTML(mermaidCode) {
+    function createStandaloneMermaidHTML(mermaidCode, libCode) {
         const safeCode = JSON.stringify(mermaidCode);
+        
+        // 將核心庫轉為 inline script 避免 iOS Safari Blob iframe 的跨域存取阻擋
+        const inlineLibHTML = libCode ? `<script>${libCode.replace(/<\/script>/gi, '<\\/script>')}</script>` : '';
 
         return `<!DOCTYPE html>
 <html lang="zh-TW">
@@ -786,6 +789,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; script-src 'unsafe-inline' 'unsafe-eval' https: data: blob:; style-src 'unsafe-inline' https:;">
     <title>互動式 Mermaid 圖表</title>
+    ${inlineLibHTML}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -1020,6 +1024,10 @@
 
             function loadMermaidCDN() {
                 return new Promise(function(resolve, reject) {
+                    if (typeof mermaid !== 'undefined') {
+                        resolve();
+                        return;
+                    }
                     if (currentCdnIndex >= cdnList.length) {
                         reject(new Error('所有 CDN 載入失敗'));
                         return;
@@ -1206,9 +1214,15 @@
             return URL.createObjectURL(blob);
         },
         async mermaid(content, container) {
-            // 沿用你原有的 createStandaloneMermaidHTML 邏輯
+            // 由於 iOS Safari 對 Blob iframe 的網路存取有嚴格限制，預先下載 Mermaid 核心程式碼
+            let libCode = '';
+            try {
+                libCode = await ensureMermaidLibrary();
+            } catch (e) {
+                console.warn('[Gemini Ultimate] ensureMermaidLibrary failed:', e);
+            }
             const { code } = preprocessMermaidCode(content);
-            const html = createStandaloneMermaidHTML(code);
+            const html = createStandaloneMermaidHTML(code, libCode);
             const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
             return URL.createObjectURL(blob);
         },
