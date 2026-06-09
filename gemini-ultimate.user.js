@@ -222,6 +222,7 @@
         border: 2px solid var(--border-color) !important;
         margin: var(--spacing-unit) 0 !important;
         background: var(--bg-primary);
+        position: relative;
     }
     /* 2. 表格回歸標準表結構，放棄 collapse 避免 Chrome Reflow Bug */
     .model-response-text table, markdown-renderer table, table {
@@ -1951,9 +1952,40 @@
         },
 
         copyTableText(tableEl) {
-            const text = tableEl.innerText;
-            GM_setClipboard(text, 'text');
-            Utils.showToast('📋 表格內容已複製');
+            try {
+                let csv = [];
+                const rows = tableEl.querySelectorAll('tr');
+                for (const row of rows) {
+                    const cols = row.querySelectorAll('td, th');
+                    const rowData = [];
+                    for (const col of cols) {
+                        let data = (col.innerText || col.textContent || '').trim();
+                        data = data.replace(/"/g, '""'); // Escape double quotes
+                        // Only wrap in quotes if necessary or just wrap all for safety
+                        rowData.push(`"${data}"`);
+                    }
+                    csv.push(rowData.join(','));
+                }
+                const csvString = csv.join('\n');
+                
+                // 行動端優先嘗試使用 navigator.clipboard 解決 GM_setClipboard 可能的失效問題
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(csvString).then(() => {
+                        Utils.showToast('📋 表格已複製 (逗點分隔)');
+                    }).catch(() => {
+                        GM_setClipboard(csvString, 'text');
+                        Utils.showToast('📋 表格已複製 (逗點分隔)');
+                    });
+                } else {
+                    GM_setClipboard(csvString, 'text');
+                    Utils.showToast('📋 表格已複製 (逗點分隔)');
+                }
+            } catch (err) {
+                console.error('[Gemini Ultimate] Copy Table Error:', err);
+                // Fallback
+                GM_setClipboard(tableEl.innerText, 'text');
+                Utils.showToast('📋 表格內容已複製');
+            }
         },
 
         processTable(tableContainer) {
