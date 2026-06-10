@@ -1875,6 +1875,8 @@
                 if (!overlay) {
                     overlay = document.createElement('div');
                     overlay.className = 'tm-overlay';
+                    overlay.style.paddingTop = isMermaid && !overlay.querySelector('.tm-btn-mermaid')?'0':'2%';
+                    overlay.style.paddingLeft = isMermaid && !overlay.querySelector('.tm-btn-mermaid')?'0':'2%';
                     overlay.setAttribute(ATTR_CONTAINER_PROCESSED, 'true');
                     overlay.setAttribute('role', 'group');
                     overlay.setAttribute('aria-label', '代碼操作按鈕');
