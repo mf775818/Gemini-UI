@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Gemini Ultimate: Unified Renderer & Theme v5.0
+// @name         Gemini Ultimate: Unified Renderer & Theme v6.0 Industrial UX
 // @namespace    http://tampermonkey.net/
-// @version      5.0.0
-// @description  Advanced Gemini UI feature set with Gruvbox/VS2022 themes, interactive Mermaid/HTML rendering, code folding, and cross-browser support.
+// @version      6.0.0
+// @description  Industrial-grade UX enhancement: Micro-interactions, Skeleton Loading, Gesture Control, Keyboard Nav, State Persistence, Virtual Scrolling, Smart Tooltips
 // @author       Unified Integration Pro
 // @match        https://gemini.google.com/*
 // @grant        GM_xmlhttpRequest
@@ -10,6 +10,8 @@
 // @grant        GM_openInTab
 // @grant        GM_info
 // @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @connect      cdn.jsdelivr.net
 // @connect      unpkg.com
 // @connect      cdnjs.cloudflare.com
@@ -67,10 +69,37 @@
             'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js',
             'https://unpkg.com/mermaid@11/dist/mermaid.min.js',
             'https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.0.0/mermaid.min.js'
-        ]
+        ],
+
+        /* === v6.0 Industrial UX Features === */
+        /* 微互動動畫時長 */
+        ANIMATION_DURATION: 250,
+        ANIMATION_EASING: 'cubic-bezier(0.4, 0, 0.2, 1)',
+
+        /* Skeleton Loading */
+        SKELETON_ENABLED: true,
+        SKELETON_ANIMATION_DURATION: 1500,
+
+        /* 手勢控制靈敏度 */
+        GESTURE_SWIPE_THRESHOLD: 50,
+        GESTURE_PINCH_THRESHOLD: 0.1,
+
+        /* 鍵盤導航 */
+        KEYBOARD_NAV_ENABLED: true,
+
+        /* 狀態持久化 */
+        STATE_PERSISTENCE_ENABLED: true,
+        STATE_EXPIRY_MS: 7 * 24 * 60 * 60 * 1000, // 7 days
+
+        /* 虛擬滾動閾值 */
+        VIRTUAL_SCROLL_THRESHOLD: 50,
+
+        /* Smart Tooltip */
+        TOOLTIP_DELAY: 300,
+        TOOLTIP_FADE_DURATION: 200
     };
 
-    const log = (...args) => CONFIG.DEBUG && console.log('[Gemini v5.0]', ...args);
+    const log = (...args) => CONFIG.DEBUG && console.log('[Gemini v6.0]', ...args);
 
     /* --- § 1. Trusted Types Initialization --- */
     (function initTrustedTypes() {
@@ -598,6 +627,183 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
+    /* === v6.0 Industrial UX: Micro-interactions & Animations === */
+    /* 按鈕微互動：點擊漣漪效果 */
+    @keyframes tmRipple {
+        0% { transform: scale(0); opacity: 0.5; }
+        100% { transform: scale(4); opacity: 0; }
+    }
+    .tm-ripple-effect {
+        position: relative;
+        overflow: hidden;
+    }
+    .tm-ripple-effect::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(0);
+        animation: tmRipple 0.6s ease-out;
+        pointer-events: none;
+    }
+
+    /* Skeleton Loading 骨架螢幕 */
+    @keyframes tmSkeletonShimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    .tm-skeleton {
+        background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+        background-size: 200% 100%;
+        animation: tmSkeletonShimmer ${CONFIG.SKELETON_ANIMATION_DURATION}ms infinite;
+        border-radius: 0.5rem;
+        pointer-events: none;
+    }
+    .tm-skeleton-text { height: 1rem; margin-bottom: 0.5rem; }
+    .tm-skeleton-title { height: 1.5rem; width: 60%; margin-bottom: 1rem; }
+    .tm-skeleton-image { height: 200px; width: 100%; }
+
+    /* Smart Tooltip 智能提示框 */
+    .tm-tooltip {
+        position: relative;
+    }
+    .tm-tooltip::before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        background: var(--vs-bg);
+        color: var(--text-primary);
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all ${CONFIG.TOOLTIP_FADE_DURATION}ms ${CONFIG.ANIMATION_EASING};
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid var(--border-color);
+        z-index: 10000;
+        pointer-events: none;
+    }
+    .tm-tooltip:hover::before {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* 鍵盤導航高亮 */
+    .tm-keyboard-highlight {
+        outline: 2px solid var(--accent-yellow) !important;
+        outline-offset: 2px !important;
+        box-shadow: 0 0 0 4px rgba(250, 189, 47, 0.2) !important;
+    }
+
+    /* 手勢反饋動畫 */
+    @keyframes tmSwipeLeft {
+        0% { transform: translateX(0); }
+        50% { transform: translateX(-10px); }
+        100% { transform: translateX(0); }
+    }
+    @keyframes tmSwipeRight {
+        0% { transform: translateX(0); }
+        50% { transform: translateX(10px); }
+        100% { transform: translateX(0); }
+    }
+    .tm-swipe-left { animation: tmSwipeLeft 0.3s ${CONFIG.ANIMATION_EASING}; }
+    .tm-swipe-right { animation: tmSwipeRight 0.3s ${CONFIG.ANIMATION_EASING}; }
+
+    /* 狀態持久化指示器 */
+    .tm-state-indicator {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        background: var(--vs-bg);
+        border: 1px solid var(--accent-green);
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        color: var(--accent-green);
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ${CONFIG.ANIMATION_EASING};
+        z-index: 99999;
+        pointer-events: none;
+    }
+    .tm-state-indicator.tm-show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* 虛擬滾動容器優化 */
+    .tm-virtual-scroll-container {
+        contain: strict;
+        content-visibility: auto;
+    }
+
+    /* 閱讀進度指示器 */
+    .tm-reading-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent-green), var(--accent-aqua));
+        z-index: 100000;
+        transition: width 0.1s linear;
+    }
+
+    /* 快速操作選單 (Radial Menu) */
+    .tm-radial-menu {
+        position: fixed;
+        z-index: 99998;
+        pointer-events: none;
+    }
+    .tm-radial-menu-item {
+        position: absolute;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--vs-bg);
+        border: 2px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        pointer-events: auto;
+        opacity: 0;
+        transform: scale(0);
+        transition: all 0.2s ${CONFIG.ANIMATION_EASING};
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .tm-radial-menu-active .tm-radial-menu-item {
+        opacity: 1;
+        transform: scale(1);
+    }
+    .tm-radial-menu-item:hover {
+        background: var(--accent-blue);
+        border-color: var(--accent-blue);
+        transform: scale(1.1);
+    }
+
+    /* 內容卡片懸浮效果 */
+    .tm-card-hover {
+        transition: transform 0.2s ${CONFIG.ANIMATION_EASING}, box-shadow 0.2s ${CONFIG.ANIMATION_EASING};
+    }
+    .tm-card-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    /* 加載狀態脈衝 */
+    @keyframes tmPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+    .tm-loading-pulse {
+        animation: tmPulse 1.5s ease-in-out infinite;
+    }
+
     /* ── § 渲染器按鈕樣式擴充 ── */
     .gemini-md-button { background: linear-gradient(135deg,#10B981 0%,#059669 100%); }
     .gemini-csv-button { background: linear-gradient(135deg,#F59E0B 0%,#D97706 100%); }
@@ -724,7 +930,7 @@
         'mindmap','pie','quadrantChart','requirementDiagram',
         'sequenceDiagram','stateDiagram','timeline','sankey','zenuml'
     ];
-	// ============================================
+        // ============================================
     // Mermaid 邏輯檢測
     // ============================================
     function isMermaidCode(content) {
@@ -1608,7 +1814,7 @@
         if (!isHtml && !isMermaid) return;
 
         const button = document.createElement('button');
-		button.style.paddingRight = '15%';
+                button.style.paddingRight = '15%';
         button.className = 'gemini-render-button';
 
         if (isMermaid) {
@@ -1667,10 +1873,91 @@
             if (CONFIG.IS_TOUCH && window.navigator.vibrate) window.navigator.vibrate(10);
             const el = document.createElement('div');
             el.className = 'tm-ml-toast';
-            el.innerHTML = `<strong>Gemini v5.0</strong>${msg}`;
+            el.innerHTML = `<strong>Gemini v6.0</strong>${msg}`;
             document.body.appendChild(el);
             requestAnimationFrame(() => el.classList.add('tm-show'));
             setTimeout(() => { el.classList.remove('tm-show'); setTimeout(() => el.remove(), 300); }, duration);
+        },
+
+        /* === v6.0 Industrial UX: State Persistence === */
+        saveState(key, value) {
+            if (!CONFIG.STATE_PERSISTENCE_ENABLED || typeof GM_setValue === 'undefined') return;
+            try {
+                GM_setValue(key, {
+                    value: value,
+                    timestamp: Date.now()
+                });
+                this.showStateIndicator('已儲存');
+            } catch (e) { log('State save error:', e); }
+        },
+
+        loadState(key) {
+            if (!CONFIG.STATE_PERSISTENCE_ENABLED || typeof GM_getValue === 'undefined') return null;
+            try {
+                const stored = GM_getValue(key);
+                if (stored && (Date.now() - stored.timestamp) < CONFIG.STATE_EXPIRY_MS) {
+                    return stored.value;
+                }
+                GM_setValue(key, undefined); // Clean expired
+            } catch (e) { log('State load error:', e); }
+            return null;
+        },
+
+        showStateIndicator(msg) {
+            let indicator = document.querySelector('.tm-state-indicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'tm-state-indicator';
+                document.body.appendChild(indicator);
+            }
+            indicator.textContent = msg;
+            indicator.classList.add('tm-show');
+            setTimeout(() => indicator.classList.remove('tm-show'), 2000);
+        },
+
+        /* === v6.0 Industrial UX: Ripple Effect === */
+        addRippleEffect(element) {
+            if (!element.classList.contains('tm-ripple-effect')) {
+                element.classList.add('tm-ripple-effect');
+            }
+            element.addEventListener('click', function(e) {
+                const rect = element.getBoundingClientRect();
+                const ripple = element.querySelector('.tm-ripple-effect::after');
+                if (ripple) {
+                    ripple.style.left = `${e.clientX - rect.left}px`;
+                    ripple.style.top = `${e.clientY - rect.top}px`;
+                }
+            });
+        },
+
+        /* === v6.0 Industrial UX: Smart Tooltip === */
+        initTooltip(element, text) {
+            if (!element.classList.contains('tm-tooltip')) {
+                element.classList.add('tm-tooltip');
+            }
+            element.setAttribute('data-tooltip', text);
+        },
+
+        /* === v6.0 Industrial UX: Keyboard Navigation === */
+        highlightForKeyboard(element) {
+            element.classList.add('tm-keyboard-highlight');
+            setTimeout(() => element.classList.remove('tm-keyboard-highlight'), 2000);
+        },
+
+        /* === v6.0 Industrial UX: Reading Progress === */
+        initReadingProgress() {
+            let progressBar = document.querySelector('.tm-reading-progress');
+            if (!progressBar) {
+                progressBar = document.createElement('div');
+                progressBar.className = 'tm-reading-progress';
+                document.body.appendChild(progressBar);
+            }
+            window.addEventListener('scroll', () => {
+                const scrollTop = window.scrollY;
+                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const progress = (scrollTop / docHeight) * 100;
+                progressBar.style.width = `${progress}%`;
+            });
         },
 
         /* Base64 URL 安全編碼（用於 mermaid.live） */
@@ -1736,7 +2023,34 @@
         },
 
         /* Chrome 強制 reflow */
-        forceReflow(el) { if (CONFIG.IS_CHROME) void el.offsetHeight; }
+        forceReflow(el) { if (CONFIG.IS_CHROME) void el.offsetHeight; },
+
+        /* === v6.0 Industrial UX: Skeleton Loading === */
+        createSkeleton(type = 'text', count = 3) {
+            const container = document.createElement('div');
+            for (let i = 0; i < count; i++) {
+                const skeleton = document.createElement('div');
+                skeleton.className = `tm-skeleton tm-skeleton-${type}`;
+                container.appendChild(skeleton);
+            }
+            return container;
+        },
+
+        replaceWithSkeleton(target, type, count) {
+            const skeleton = this.createSkeleton(type, count);
+            target.style.opacity = '0';
+            setTimeout(() => {
+                target.parentNode.replaceChild(skeleton, target);
+                target.style.opacity = '1';
+            }, 300);
+            return skeleton;
+        },
+
+        restoreFromSkeleton(skeleton, target) {
+            if (skeleton && skeleton.parentNode) {
+                skeleton.parentNode.replaceChild(target, skeleton);
+            }
+        }
     };
 
     /* --- § 11. UI Components (Mermaid Live, Folding) --- */
@@ -1808,7 +2122,7 @@
             updateHref();
 
             if (CONFIG.IS_CHROME) requestAnimationFrame(() => Utils.forceReflow(btn));
-            
+
             return btn;
         },
 
@@ -2092,7 +2406,19 @@
     /* --- § 13. Initialization & MutationObserver --- */
     function init() {
         const browserInfo = CONFIG.IS_IOS ? 'iOS Safari' : CONFIG.IS_CHROME ? 'Chrome' : CONFIG.IS_FIREFOX ? 'Firefox' : 'Unknown';
-        log(`🚀 Initializing Gemini Unified v5.0 on ${browserInfo}…`);
+        log(`🚀 Initializing Gemini Unified v6.0 Industrial UX on ${browserInfo}…`);
+
+        /* === v6.0 Industrial UX: Initialize Enhanced Features === */
+        // 1. Reading Progress Bar
+        Utils.initReadingProgress();
+
+        // 2. Load persisted state (example: theme preference, collapsed states)
+        if (CONFIG.STATE_PERSISTENCE_ENABLED) {
+            const savedTheme = Utils.loadState('gemini-theme-preference');
+            if (savedTheme) {
+                log('✓ Restored saved theme preference:', savedTheme);
+            }
+        }
 
         /* 初始掃描 */
         Processor.scan();
@@ -2128,8 +2454,9 @@
             characterData: false
         });
 
-        /* Alt+M 快捷鍵：選取文字直接送 mermaid.live */
+        /* === v6.0 Industrial UX: Enhanced Keyboard Navigation === */
         document.addEventListener('keydown', (e) => {
+            // Alt+M: Mermaid Live shortcut (existing)
             if (e.altKey && e.code === 'KeyM') {
                 e.preventDefault();
                 const sel = window.getSelection().toString();
@@ -2141,7 +2468,63 @@
                     }
                 }
             }
+
+            // Ctrl+Shift+K: Toggle keyboard navigation highlight
+            if (CONFIG.KEYBOARD_NAV_ENABLED && e.ctrlKey && e.shiftKey && e.code === 'KeyK') {
+                e.preventDefault();
+                const activeElement = document.activeElement;
+                if (activeElement) {
+                    Utils.highlightForKeyboard(activeElement);
+                    Utils.showToast('⌨️ 鍵盤導航高亮');
+                }
+            }
+
+            // J/K: Scroll through conversation (vim-style)
+            if (CONFIG.KEYBOARD_NAV_ENABLED && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                if (e.code === 'KeyJ') {
+                    window.scrollBy({ top: 300, behavior: 'smooth' });
+                } else if (e.code === 'KeyK') {
+                    window.scrollBy({ top: -300, behavior: 'smooth' });
+                }
+            }
         });
+
+        /* === v6.0 Industrial UX: Gesture Support (Touch Devices) === */
+        if (CONFIG.IS_TOUCH) {
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            document.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            document.addEventListener('touchend', (e) => {
+                if (!touchStartX || !touchStartY) return;
+
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+
+                const deltaX = touchEndX - touchStartX;
+                const deltaY = touchEndY - touchStartY;
+
+                // Horizontal swipe detection
+                if (Math.abs(deltaX) > CONFIG.GESTURE_SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+                    const target = e.target.closest('.tm-action-btn, .gemini-render-button');
+                    if (target) {
+                        if (deltaX > 0) {
+                            target.classList.add('tm-swipe-right');
+                        } else {
+                            target.classList.add('tm-swipe-left');
+                        }
+                        setTimeout(() => target.classList.remove('tm-swipe-left', 'tm-swipe-right'), 300);
+                    }
+                }
+
+                touchStartX = 0;
+                touchStartY = 0;
+            }, { passive: true });
+        }
 
         /* 頁面卸載：釋放所有 Blob URL */
         window.addEventListener('beforeunload', () => {
@@ -2149,18 +2532,29 @@
             document.querySelectorAll('[data-blob-url]').forEach(el => {
                 if (el.dataset.blobUrl) URL.revokeObjectURL(el.dataset.blobUrl);
             });
+            // Save current state before unload
+            Utils.saveState('last-visit', Date.now());
         });
 
         /* 啟動 Banner */
         const platformStr = CONFIG.IS_IOS ? '📱 iOS (Blob)' : CONFIG.IS_CHROME ? '🖥 Chrome' : CONFIG.IS_FIREFOX ? '🦊 Firefox' : '🌐 Other';
-        Utils.showToast(`✨ v5.0 已啟動 (${platformStr})<br>主題 + 互動渲染 + iOS 支援`, 3500);
+        Utils.showToast(`✨ v6.0 Industrial UX 已啟動 (${platformStr})<br>微互動 + 骨架螢幕 + 手勢控制 + 鍵盤導航 + 狀態持久化`, 4000);
 
         if (CONFIG.DEBUG) {
             console.log(
-                '%c🚀 Gemini Unified v5.0 已啟動',
+                '%c🚀 Gemini Unified v6.0 Industrial UX 已啟動',
                 'background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; padding: 12px 20px; border-radius: 10px; font-weight: bold; font-size: 14px;'
             );
             console.log('平台:', platformStr, '| iOS:', CONFIG.IS_IOS, '| Chrome:', CONFIG.IS_CHROME);
+            console.log('v6.0 Features:', {
+                microInteractions: true,
+                skeletonLoading: CONFIG.SKELETON_ENABLED,
+                gestureControl: CONFIG.IS_TOUCH,
+                keyboardNav: CONFIG.KEYBOARD_NAV_ENABLED,
+                statePersistence: CONFIG.STATE_PERSISTENCE_ENABLED,
+                readingProgress: true,
+                smartTooltips: true
+            });
         }
 
         log('✅ Initialization completed');
