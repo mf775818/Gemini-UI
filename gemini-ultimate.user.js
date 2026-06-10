@@ -353,6 +353,7 @@
         -webkit-tap-highlight-color: transparent;
         transform: translateZ(0); position: relative;
         visibility: visible !important; opacity: 1 !important;
+        text-decoration: none !important;
     }
     .tm-action-btn svg { width: 1rem; height: 1rem; fill: currentColor; flex-shrink: 0; }
     .tm-action-btn:hover, .tm-action-btn:active {
@@ -1762,39 +1763,51 @@
 
         /* Mermaid Live 按鈕（開啟 mermaid.live 編輯器） */
         createMermaidLiveBtn(codeEl) {
-            return Components.createButton(
-                'tm-btn-mermaid',
-                '<svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3m-2 16H5V5h7V3H5c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2v-7h-2v7z"/></svg>',
-                'Mermaid Live',
-                (btn) => {
-                    btn.classList.add('tm-loading');
-                    try {
-                        const code    = Utils.getCodeText(codeEl);
-                        const payload = {
-                            code,
-                            mermaid: {
-                                theme: 'dark',
-                                themeVariables: {
-                                    darkMode: true, background: '#1E1E1E',
-                                    primaryColor: '#4EC9B0', primaryTextColor: '#D4D4D4',
-                                    primaryBorderColor: '#3E3E42', lineColor: '#9CDCFE',
-                                    secondaryColor: '#569CD6', tertiaryColor: '#C586C0'
-                                }
+            const btn = document.createElement('a');
+            btn.className = 'tm-action-btn tm-btn-mermaid';
+            btn.target = '_blank';
+            btn.rel = 'noopener noreferrer';
+            btn.setAttribute('role', 'link');
+            btn.setAttribute('aria-label', 'Mermaid Live');
+            
+            const iconSvg = '<svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3m-2 16H5V5h7V3H5c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2v-7h-2v7z"/></svg>';
+            btn.innerHTML = `${iconSvg}<span class="tm-btn-text-full">Mermaid Live</span>`;
+
+            const updateHref = () => {
+                try {
+                    const code = Utils.getCodeText(codeEl);
+                    const payload = {
+                        code,
+                        mermaid: {
+                            theme: 'dark',
+                            themeVariables: {
+                                darkMode: true, background: '#1E1E1E',
+                                primaryColor: '#4EC9B0', primaryTextColor: '#D4D4D4',
+                                primaryBorderColor: '#3E3E42', lineColor: '#9CDCFE',
+                                secondaryColor: '#569CD6', tertiaryColor: '#C586C0'
                             }
-                        };
-                        const encoded = Utils.base64UrlEncode(JSON.stringify(payload));
-                        if (encoded) {
-                            Utils.openUrl(`https://mermaid.live/edit#base64:${encoded}`);
-                            Utils.showToast('✓ Mermaid Live 已開啟');
-                        } else throw new Error('編碼失敗');
-                    } catch (e) {
-                        Utils.showToast('❌ 錯誤: ' + e.message);
-                        log('Mermaid Live error:', e);
-                    } finally {
-                        setTimeout(() => btn.classList.remove('tm-loading'), 500);
+                        }
+                    };
+                    const encoded = Utils.base64UrlEncode(JSON.stringify(payload));
+                    if (encoded) {
+                        btn.href = `https://mermaid.live/edit#base64:${encoded}`;
                     }
+                } catch (e) {
+                    log('Error updating Mermaid Live href:', e);
                 }
-            );
+            };
+
+            btn.addEventListener('mouseenter', updateHref);
+            btn.addEventListener('touchstart', updateHref, { passive: true });
+            btn.addEventListener('focus', updateHref);
+            btn.addEventListener('click', () => {
+                Utils.showToast('✓ Mermaid Live 已開啟');
+            });
+            updateHref();
+
+            if (CONFIG.IS_CHROME) requestAnimationFrame(() => Utils.forceReflow(btn));
+            
+            return btn;
         },
 
         /* 折疊按鈕（超過 FOLD_THRESHOLD 行時出現） */
