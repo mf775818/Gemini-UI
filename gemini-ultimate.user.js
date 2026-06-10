@@ -162,49 +162,49 @@
     }
 
     /* ── Markdown 基礎 ── */
-    .model-response-text, markdown-renderer, .markdown-renderer {
+    .model-response-text, markdown-renderer, .markdown-renderer, .tm-preview-view {
         color: var(--text-secondary) !important; font-family: var(--font-body) !important;
         line-height: var(--line-height) !important; font-size: var(--base-font-size) !important;
     }
 
     /* ── 標題系統 ── */
-    .model-response-text h1, markdown-renderer h1 {
+    .model-response-text h1, markdown-renderer h1, .tm-preview-view h1 {
         color: var(--accent-red) !important; font-weight: 800 !important; font-size: 1.75rem !important;
         margin-top: 1.5rem !important; margin-bottom: var(--spacing-unit) !important;
         border-bottom: 2px solid var(--bg-tertiary); padding-bottom: 0.5rem; line-height: 1.3;
     }
-    .model-response-text h2, markdown-renderer h2 {
+    .model-response-text h2, markdown-renderer h2, .tm-preview-view h2 {
         color: var(--accent-blue) !important; font-weight: 700 !important; font-size: 1.5rem !important;
         margin-top: 1.25rem !important; margin-bottom: 0.6rem !important; line-height: 1.35;
     }
-    .model-response-text h3, markdown-renderer h3 {
+    .model-response-text h3, markdown-renderer h3, .tm-preview-view h3 {
         color: var(--accent-yellow) !important; font-weight: 600 !important; font-size: 1.25rem !important;
         margin-top: 1rem !important; margin-bottom: 0.5rem !important; line-height: 1.4;
     }
-    .model-response-text h4, markdown-renderer h4 {
+    .model-response-text h4, markdown-renderer h4, .tm-preview-view h4 {
         color: var(--accent-green) !important; font-weight: 600 !important;
         font-size: 1.1rem !important; margin-top: 0.875rem !important;
     }
-    .model-response-text p, markdown-renderer p { margin-bottom: var(--spacing-unit) !important; line-height: var(--line-height); }
+    .model-response-text p, markdown-renderer p, .tm-preview-view p { margin-bottom: var(--spacing-unit) !important; line-height: var(--line-height); }
     .model-response-text strong, markdown-renderer strong,
-    .model-response-text b, markdown-renderer b { color: var(--accent-orange) !important; font-weight: 700 !important; }
-    .model-response-text em, markdown-renderer em { color: var(--accent-purple) !important; font-style: italic; }
-    .model-response-text a, markdown-renderer a {
+    .model-response-text b, markdown-renderer b, .tm-preview-view strong, .tm-preview-view b { color: var(--accent-orange) !important; font-weight: 700 !important; }
+    .model-response-text em, markdown-renderer em, .tm-preview-view em { color: var(--accent-purple) !important; font-style: italic; }
+    .model-response-text a, markdown-renderer a, .tm-preview-view a {
         color: var(--accent-aqua) !important; text-decoration: none !important;
         border-bottom: 1px dashed var(--accent-aqua); transition: all 0.2s ease; padding-bottom: 1px;
     }
-    .model-response-text a:hover, markdown-renderer a:hover { background: rgba(142,192,124,0.15); border-bottom-style: solid; }
+    .model-response-text a:hover, markdown-renderer a:hover, .tm-preview-view a:hover { background: rgba(142,192,124,0.15); border-bottom-style: solid; }
 
     /* ── 列表 ── */
-    .model-response-text ul, markdown-renderer ul,
-    .model-response-text ol,  markdown-renderer ol {
+    .model-response-text ul, markdown-renderer ul, .tm-preview-view ul,
+    .model-response-text ol,  markdown-renderer ol, .tm-preview-view ol {
         margin: var(--spacing-unit) 0 !important; margin-left: 1.5rem !important; padding-left: 0.5rem !important;
     }
-    .model-response-text li, markdown-renderer li { margin-bottom: 0.4rem !important; line-height: var(--line-height); }
-    .model-response-text li::marker, markdown-renderer li::marker { color: var(--accent-purple) !important; font-weight: 600; }
+    .model-response-text li, markdown-renderer li, .tm-preview-view li { margin-bottom: 0.4rem !important; line-height: var(--line-height); }
+    .model-response-text li::marker, markdown-renderer li::marker, .tm-preview-view li::marker { color: var(--accent-purple) !important; font-weight: 600; }
 
     /* ── 引用 ── */
-    .model-response-text blockquote, markdown-renderer blockquote {
+    .model-response-text blockquote, markdown-renderer blockquote, .tm-preview-view blockquote {
         border-left: 4px solid var(--accent-purple) !important;
         background: rgba(60,56,54,0.35) !important; color: var(--text-muted) !important;
         margin: var(--spacing-unit) 0 !important; padding: var(--spacing-unit) 1rem !important;
@@ -564,7 +564,7 @@
         transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .tm-preview-view {
-        display: none; /* 預設隱藏 */
+        display: none !important; /* 預設隱藏 */
         background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
@@ -575,6 +575,7 @@
         overflow-x: auto;
         overflow-wrap: break-word;
         word-break: break-word;
+        white-space: normal !important;
     }
     /* 為 Markdown 的內容提供限制，避免圖片或表格超出邊界 */
     .tm-preview-view img { max-width: 100%; height: auto; }
@@ -582,14 +583,14 @@
     .tm-preview-view table { display: block; max-width: 100%; overflow-x: auto; box-sizing: border-box; }
 
     /* 雙面卡片模式 (Inline) Markdown / CSV */
-    .tm-state-inline-preview .tm-raw-view { display: none; }
+    .tm-state-inline-preview .tm-raw-view { display: none !important; }
     .tm-state-inline-preview .tm-preview-view {
-        display: block;
+        display: block !important;
         animation: tmFadeInUp 0.3s forwards;
     }
 
     /* Iframe 渲染模式 Mermaid / HTML */
-    .tm-state-iframe-preview .tm-raw-view { display: none; }
+    .tm-state-iframe-preview .tm-raw-view { display: none !important; }
     .tm-state-iframe-preview .tm-preview-view { display: none !important; }
 
     @keyframes tmFadeInUp {
@@ -1695,7 +1696,7 @@
         /* 取得代碼文字 */
         getCodeText(block) {
             const el = block.tagName === 'CODE' ? block : (block.querySelector('code') || block);
-            return (el.innerText || el.textContent || '').trim();
+            return (el.textContent || el.innerText || '').trim();
         },
 
         /* 向上查找複製按鈕所在容器（Chrome/Firefox 兼容） */
