@@ -5,6 +5,7 @@
 // @description  Industrial-grade UX enhancement: Micro-interactions, Skeleton Loading, Gesture Control, Keyboard Nav, State Persistence, Virtual Scrolling, Smart Tooltips
 // @author       Unified Integration Pro
 // @match        https://gemini.google.com/*
+// @require      https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
 // @grant        GM_openInTab
@@ -96,7 +97,25 @@
 
         /* Smart Tooltip */
         TOOLTIP_DELAY: 300,
-        TOOLTIP_FADE_DURATION: 200
+        TOOLTIP_FADE_DURATION: 200,
+
+        /* === Industrial Auto-Collapse Panel & Visual Aura === */
+        UI_AURA: {
+            SELECTORS: {
+                TARGET: '.ui-improvements-phase, .edge-to-edge, chat-app form.chat-app', // User spec + robust fallbacks
+                FALLBACK: '.chat-input-container, rich-textarea' // 降級目標
+            },
+            ANIMATION: {
+                SCALE_DOWN: 0.7,
+                Y_OFFSET: '-15px',
+                TIMING: '0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+            },
+            PHYSICS: {
+                AGENT_COUNT: 40,
+                MAX_SPEED: 2,
+                MAX_FORCE: 0.05
+            }
+        }
     };
 
     const log = (...args) => CONFIG.DEBUG && console.log('[Gemini v6.0]', ...args);
@@ -625,6 +644,73 @@
     @keyframes tmFadeInUp {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* === Industrial Auto-Collapse Panel & Visual Aura CSS === */
+    .gemini-ui-smart-container {
+        transition: max-width ${CONFIG.UI_AURA.ANIMATION.TIMING},
+                    height ${CONFIG.UI_AURA.ANIMATION.TIMING},
+                    padding ${CONFIG.UI_AURA.ANIMATION.TIMING},
+                    margin ${CONFIG.UI_AURA.ANIMATION.TIMING},
+                    border-radius ${CONFIG.UI_AURA.ANIMATION.TIMING},
+                    transform ${CONFIG.UI_AURA.ANIMATION.TIMING}, 
+                    opacity ${CONFIG.UI_AURA.ANIMATION.TIMING},
+                    box-shadow ${CONFIG.UI_AURA.ANIMATION.TIMING};
+        transform-origin: bottom center;
+        will-change: width, max-width, height, margin, transform, opacity;
+        position: relative;
+        z-index: 100;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .gemini-ui-expanded {
+        max-width: 100%;
+        transform: translateY(0);
+        opacity: 1;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .gemini-ui-collapsed {
+        max-width: 140px !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        margin-bottom: 2vh !important;
+        transform: translateY(${CONFIG.UI_AURA.ANIMATION.Y_OFFSET});
+        opacity: 0.9;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+        cursor: pointer !important;
+        border-radius: 40px !important;
+        background: var(--bg-secondary) !important;
+        border: 2px solid var(--border-color) !important;
+        overflow: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .gemini-ui-collapsed::before {
+        content: '✍️ Chat';
+        font-family: var(--font-body);
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--text-primary);
+        pointer-events: none;
+    }
+
+    /* Hide all actual children inside the capsule */
+    .gemini-ui-collapsed > * {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        visibility: hidden !important;
+    }
+
+    .gemini-ui-collapsed:hover {
+        opacity: 1;
+        max-width: 150px !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
+        transform: translateY(calc(${CONFIG.UI_AURA.ANIMATION.Y_OFFSET} - 2px));
     }
 
     /* === v6.0 Industrial UX: Micro-interactions & Animations === */
@@ -2403,6 +2489,116 @@
         }
     };
 
+    /* === UIImprovementsManager & AuraEngine (v6.0) === */
+    class UIImprovementsManager {
+        constructor() {
+            this.targetElement = null;
+            this.isExpanded = true;
+        }
+
+        init() {
+            this.findTarget();
+            // Start an observer to handle delayed mounts of chat input
+            const obs = new MutationObserver(() => {
+                if (!this.targetElement && this.findTarget()) {
+                    obs.disconnect();
+                }
+            });
+            obs.observe(document.body, { childList: true, subtree: true });
+        }
+
+        findTarget() {
+            let el = document.querySelector(CONFIG.UI_AURA.SELECTORS.TARGET);
+            if (!el) el = document.querySelector(CONFIG.UI_AURA.SELECTORS.FALLBACK);
+            
+            if (el && !this.targetElement) {
+                this.targetElement = el;
+                log('找到目標面板，開始掛載膠囊 UI');
+                this.mount();
+                return true;
+            }
+            return false;
+        }
+
+        mount() {
+            this.targetElement.classList.add('gemini-ui-smart-container', 'gemini-ui-expanded');
+            
+            // 綁定焦點事件 (使用 Event Delegation 架構)
+            this.targetElement.addEventListener('focusin', this.handleFocusIn.bind(this));
+            this.targetElement.addEventListener('focusout', this.handleFocusOut.bind(this));
+            
+            // 點擊膠囊也能展開
+            this.targetElement.addEventListener('mousedown', () => {
+                if (!this.isExpanded) {
+                    this.expand();
+                    // 強制獲得焦點以防立即縮小
+                    setTimeout(() => {
+                        const input = this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea');
+                        if (input) input.focus();
+                    }, 50);
+                }
+            });
+
+            // 綁定滾動事件：當使用者滾動頁面時自動縮小為膠囊 (依據使用者目標)
+            const handleScroll = () => {
+                if (this.isExpanded && !this.targetElement.contains(document.activeElement)) {
+                    this.collapse();
+                }
+            };
+            
+            window.addEventListener('scroll', handleScroll, { passive: true });
+            window.addEventListener('wheel', handleScroll, { passive: true });
+            window.addEventListener('touchmove', handleScroll, { passive: true });
+            
+            // 監聽特定聊天容器的內部滾動
+            setTimeout(() => {
+                const containers = document.querySelectorAll('message-list, chat-window, .conversation-container, main');
+                containers.forEach(c => c.addEventListener('scroll', handleScroll, { passive: true }));
+            }, 1000);
+        }
+
+        handleFocusIn() {
+            if (!this.isExpanded) {
+                this.expand();
+            }
+        }
+
+        handleFocusOut(event) {
+            // 防呆攔截：確認新的焦點是否依然在容器內部
+            if (!this.targetElement.contains(event.relatedTarget)) {
+                // 為了避免點擊外部按鈕時的閃爍，給予 50ms 的防抖
+                setTimeout(() => {
+                    if (!this.targetElement.contains(document.activeElement)) {
+                        this.collapse();
+                    }
+                }, 50);
+            }
+        }
+
+        expand() {
+            this.isExpanded = true;
+            this.targetElement.classList.remove('gemini-ui-collapsed');
+            this.targetElement.classList.add('gemini-ui-expanded');
+            
+            // Allow child content pointer events again
+            this.targetElement.querySelectorAll('*').forEach(child => {
+                 child.style.pointerEvents = '';
+            });
+            log('UI 展開 (Active)');
+        }
+
+        collapse() {
+            // Check if there is text in the input
+            const inputEl = this.targetElement.querySelector('.ql-editor');
+            if (inputEl && inputEl.textContent.trim().length > 0) return; // do not collapse if it has text
+
+            this.isExpanded = false;
+            this.targetElement.classList.remove('gemini-ui-expanded');
+            this.targetElement.classList.add('gemini-ui-collapsed');
+            log('UI 縮成膠囊 (Collapsed)');
+        }
+    }
+
     /* --- § 13. Initialization & MutationObserver --- */
     function init() {
         const browserInfo = CONFIG.IS_IOS ? 'iOS Safari' : CONFIG.IS_CHROME ? 'Chrome' : CONFIG.IS_FIREFOX ? 'Firefox' : 'Unknown';
@@ -2418,6 +2614,14 @@
             if (savedTheme) {
                 log('✓ Restored saved theme preference:', savedTheme);
             }
+        }
+
+        // 3. Initialize Visual Aura Engine & Auto-Collapse Panel
+        try {
+            const uiManager = new UIImprovementsManager();
+            uiManager.init();
+        } catch (e) {
+            log('Aura Engine initialization failed:', e);
         }
 
         /* 初始掃描 */
