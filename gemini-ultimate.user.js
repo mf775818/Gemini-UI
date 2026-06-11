@@ -2551,24 +2551,62 @@
                 }
             });
 
-            // 綁定滾動事件：工業級全局捕獲 (Capture Phase)，解決移動端滾動事件被攔截或需要先聚焦的問題
-            let scrollRAF = null;
-            const handleScroll = () => {
+            // 綁定滾動與手勢事件：工業級全局捕獲 (Capture Phase)，針對移動端與電腦端最佳化
+            let interactionRAF = null;
+            let touchStartY = 0;
+            let touchStartX = 0;
+
+            const checkScrollIntent = () => {
                 if (!this.isExpanded || this.targetElement.contains(document.activeElement)) return;
                 
-                // 節流處理頻繁的滾動事件
-                if (scrollRAF) cancelAnimationFrame(scrollRAF);
-                scrollRAF = requestAnimationFrame(() => {
+                // 節流處理頻繁的觸發
+                if (interactionRAF) cancelAnimationFrame(interactionRAF);
+                interactionRAF = requestAnimationFrame(() => {
                     this.collapse();
                 });
             };
+
+            const handleTouchStart = (e) => {
+                if (!this.isExpanded) return;
+                if (e.touches && e.touches.length > 0) {
+                    touchStartY = e.touches[0].clientY;
+                    touchStartX = e.touches[0].clientX;
+                }
+            };
+
+            const handleTouchMove = (e) => {
+                if (!this.isExpanded || this.targetElement.contains(document.activeElement)) return;
+                if (!e.touches || e.touches.length === 0) return;
+                
+                const touchY = e.touches[0].clientY;
+                const touchX = e.touches[0].clientX;
+                const deltaY = Math.abs(touchY - touchStartY);
+                const deltaX = Math.abs(touchX - touchStartX);
+                
+                // 移動端 UX 優化：
+                // 1. 若為純水平滑動 (如手勢返回) -> 不干擾
+                // 2. 垂直滑動超過 15px -> 視為明確的閱讀/滾動意圖，才觸發縮小
+                // 這樣可以避免使用者點擊時的手指微小偏移導致強制縮小，提升魯棒性
+                if (deltaY > 15 && deltaY > deltaX) {
+                    checkScrollIntent();
+                }
+            };
+
+            const handleWheel = (e) => {
+                // 電腦端 UX 優化：滑鼠滾輪/觸控板滾動超過特定閾值才縮小
+                if (Math.abs(e.deltaY) > 5) checkScrollIntent();
+            };
+
+            const handleScroll = () => {
+                // 原生 scroll 捕捉：應對拖曳捲軸、鍵盤上下鍵、PgUp/PgDn 等各種瀏覽器自帶的滾動行為
+                checkScrollIntent();
+            };
             
-            // 使用 capture: true 強制在事件傳遞的最前端就捕獲到所有的 scroll / touchmove
-            // 不受內部元素停止冒泡 (stopPropagation) 的干擾，並且覆蓋整個視口
+            // 使用 capture: true 強制在事件傳遞的最高層攔截 (無視子元素 stopPropagation)
             window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-            window.addEventListener('wheel', handleScroll, { passive: true, capture: true });
-            window.addEventListener('touchmove', handleScroll, { passive: true, capture: true });
-            window.addEventListener('touchstart', handleScroll, { passive: true, capture: true });
+            window.addEventListener('wheel', handleWheel, { passive: true, capture: true });
+            window.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+            window.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true });
         }
 
         handleFocusIn() {
