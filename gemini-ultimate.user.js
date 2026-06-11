@@ -655,11 +655,11 @@
                     border-radius ${CONFIG.UI_AURA.ANIMATION.TIMING},
                     transform ${CONFIG.UI_AURA.ANIMATION.TIMING}, 
                     opacity ${CONFIG.UI_AURA.ANIMATION.TIMING},
-                    box-shadow ${CONFIG.UI_AURA.ANIMATION.TIMING};
+                    box-shadow ${CONFIG.UI_AURA.ANIMATION.TIMING},
+                    bottom ${CONFIG.UI_AURA.ANIMATION.TIMING};
         transform-origin: bottom center;
-        will-change: width, max-width, height, margin, transform, opacity;
-        position: relative;
-        z-index: 100;
+        will-change: width, max-width, height, margin, transform, opacity, bottom;
+        z-index: 1000;
         margin-left: auto;
         margin-right: auto;
     }
@@ -669,24 +669,34 @@
         transform: translateY(0);
         opacity: 1;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
     }
 
     .gemini-ui-collapsed {
         max-width: 140px !important;
         height: 48px !important;
         min-height: 48px !important;
-        margin-bottom: 2vh !important;
-        transform: translateY(${CONFIG.UI_AURA.ANIMATION.Y_OFFSET});
-        opacity: 0.9;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        opacity: 0.95;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important;
         cursor: pointer !important;
         border-radius: 40px !important;
         background: var(--bg-secondary) !important;
-        border: 2px solid var(--border-color) !important;
+        border: 1px solid var(--vs-border) !important;
         overflow: hidden !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        
+        /* 極度置底與置中：脫離文件流，解鎖上方空間 */
+        position: fixed !important;
+        bottom: 24px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        backdrop-filter: blur(12px) !important;
     }
 
     .gemini-ui-collapsed::before {
@@ -694,6 +704,7 @@
         font-family: var(--font-body);
         font-weight: 600;
         font-size: 15px;
+        letter-spacing: 0.5px;
         color: var(--text-primary);
         pointer-events: none;
     }
@@ -708,9 +719,10 @@
 
     .gemini-ui-collapsed:hover {
         opacity: 1;
-        max-width: 150px !important;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
-        transform: translateY(calc(${CONFIG.UI_AURA.ANIMATION.Y_OFFSET} - 2px));
+        max-width: 155px !important;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.35) !important;
+        transform: translateX(-50%) translateY(-2px) !important;
+        background: var(--bg-tertiary) !important;
     }
 
     /* === v6.0 Industrial UX: Micro-interactions & Animations === */
@@ -2539,22 +2551,24 @@
                 }
             });
 
-            // 綁定滾動事件：當使用者滾動頁面時自動縮小為膠囊 (依據使用者目標)
+            // 綁定滾動事件：工業級全局捕獲 (Capture Phase)，解決移動端滾動事件被攔截或需要先聚焦的問題
+            let scrollRAF = null;
             const handleScroll = () => {
-                if (this.isExpanded && !this.targetElement.contains(document.activeElement)) {
+                if (!this.isExpanded || this.targetElement.contains(document.activeElement)) return;
+                
+                // 節流處理頻繁的滾動事件
+                if (scrollRAF) cancelAnimationFrame(scrollRAF);
+                scrollRAF = requestAnimationFrame(() => {
                     this.collapse();
-                }
+                });
             };
             
-            window.addEventListener('scroll', handleScroll, { passive: true });
-            window.addEventListener('wheel', handleScroll, { passive: true });
-            window.addEventListener('touchmove', handleScroll, { passive: true });
-            
-            // 監聽特定聊天容器的內部滾動
-            setTimeout(() => {
-                const containers = document.querySelectorAll('message-list, chat-window, .conversation-container, main');
-                containers.forEach(c => c.addEventListener('scroll', handleScroll, { passive: true }));
-            }, 1000);
+            // 使用 capture: true 強制在事件傳遞的最前端就捕獲到所有的 scroll / touchmove
+            // 不受內部元素停止冒泡 (stopPropagation) 的干擾，並且覆蓋整個視口
+            window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+            window.addEventListener('wheel', handleScroll, { passive: true, capture: true });
+            window.addEventListener('touchmove', handleScroll, { passive: true, capture: true });
+            window.addEventListener('touchstart', handleScroll, { passive: true, capture: true });
         }
 
         handleFocusIn() {
