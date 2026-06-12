@@ -2506,17 +2506,96 @@
         constructor() {
             this.targetElement = null;
             this.isExpanded = true;
+            this.hasBoundGlobals = false;
         }
 
         init() {
             this.findTarget();
-            // Start an observer to handle delayed mounts of chat input
+            
+            // Start an observer to handle delayed mounts and DOM replacements of chat input
             const obs = new MutationObserver(() => {
-                if (!this.targetElement && this.findTarget()) {
-                    obs.disconnect();
+                // 若目前的目標元素被從 DOM 樹中移除 (SPA 框架重新渲染)，重置並重新尋找
+                if (this.targetElement && !this.targetElement.isConnected) {
+                    this.targetElement = null;
+                    this.isExpanded = true;
+                }
+                
+                if (!this.targetElement) {
+                    this.findTarget();
                 }
             });
             obs.observe(document.body, { childList: true, subtree: true });
+
+            this.bindGlobalEvents();
+        }
+
+        bindGlobalEvents() {
+            if (this.hasBoundGlobals) return;
+            this.hasBoundGlobals = true;
+
+            let interactionRAF = null;
+            let touchStartY = 0;
+            let touchStartX = 0;
+
+            const checkScrollIntent = () => {
+                if (!this.targetElement || !this.isExpanded || this.targetElement.contains(document.activeElement)) return;
+                
+                // 節流處理頻繁的觸發
+                if (interactionRAF) cancelAnimationFrame(interactionRAF);
+                interactionRAF = requestAnimationFrame(() => {
+                    this.collapse();
+                });
+            };
+
+            const handleTouchStart = (e) => {
+                if (!this.targetElement || !this.isExpanded) return;
+                if (e.touches && e.touches.length > 0) {
+                    touchStartY = e.touches[0].clientY;
+                    touchStartX = e.touches[0].clientX;
+                }
+            };
+
+            const handleTouchMove = (e) => {
+                if (!this.targetElement || !this.isExpanded || this.targetElement.contains(document.activeElement)) return;
+                if (!e.touches || e.touches.length === 0) return;
+                
+                const touchY = e.touches[0].clientY;
+                const touchX = e.touches[0].clientX;
+                const deltaY = Math.abs(touchY - touchStartY);
+                const deltaX = Math.abs(touchX - touchStartX);
+                
+                // 移動端 UX 優化：
+                // 1. 若為純水平滑動 (如手勢返回) -> 不干擾
+                // 2. 垂直滑動超過 15px -> 視為明確的閱讀/滾動意圖，才觸發縮小
+                if (deltaY > 15 && deltaY > deltaX) {
+                    // 若在觸控滑動時發現鍵盤是展開的 (通常 document.activeElement 仍為 input)
+                    // 此時若使用者滑動對話，我們應該強制 Blur 解面盤，並縮小膠囊，給予最佳的沉浸式閱讀體驗
+                    // 工業級防呆：主動釋放焦點
+                    if (document.activeElement && 
+                        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
+                        document.activeElement.blur();
+                    }
+                    checkScrollIntent();
+                }
+            };
+
+            const handleWheel = (e) => {
+                if (!this.targetElement) return;
+                // 電腦端 UX 優化：滑鼠滾輪/觸控板滾動超過特定閾值才縮小
+                if (Math.abs(e.deltaY) > 5) checkScrollIntent();
+            };
+
+            const handleScroll = () => {
+                if (!this.targetElement) return;
+                // 原生 scroll 捕捉：應對拖曳捲軸、鍵盤上下鍵、PgUp/PgDn 等各種瀏覽器自帶的滾動行為
+                checkScrollIntent();
+            };
+            
+            // 使用 capture: true 強制在事件傳遞的最高層攔截 (無視子元素 stopPropagation)
+            window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+            window.addEventListener('wheel', handleWheel, { passive: true, capture: true });
+            window.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+            window.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true });
         }
 
         findTarget() {
@@ -2536,11 +2615,10 @@
             this.targetElement.classList.add('gemini-ui-smart-container', 'gemini-ui-expanded');
             
             // 綁定焦點事件 (使用 Event Delegation 架構)
-            this.targetElement.addEventListener('focusin', this.handleFocusIn.bind(this));
-            this.targetElement.addEventListener('focusout', this.handleFocusOut.bind(this));
-            
-            // 點擊膠囊也能展開
-            this.targetElement.addEventListener('mousedown', () => {
+            // 將事件處理器存起來以備之後移除 (若有需要)
+            this._focusInHandler = this.handleFocusIn.bind(this);
+            this._focusOutHandler = this.handleFocusOut.bind(this);
+            this._mouseDownHandler = () => {
                 if (!this.isExpanded) {
                     this.expand();
                     // 強制獲得焦點以防立即縮小
@@ -2549,64 +2627,11 @@
                         if (input) input.focus();
                     }, 50);
                 }
-            });
-
-            // 綁定滾動與手勢事件：工業級全局捕獲 (Capture Phase)，針對移動端與電腦端最佳化
-            let interactionRAF = null;
-            let touchStartY = 0;
-            let touchStartX = 0;
-
-            const checkScrollIntent = () => {
-                if (!this.isExpanded || this.targetElement.contains(document.activeElement)) return;
-                
-                // 節流處理頻繁的觸發
-                if (interactionRAF) cancelAnimationFrame(interactionRAF);
-                interactionRAF = requestAnimationFrame(() => {
-                    this.collapse();
-                });
             };
 
-            const handleTouchStart = (e) => {
-                if (!this.isExpanded) return;
-                if (e.touches && e.touches.length > 0) {
-                    touchStartY = e.touches[0].clientY;
-                    touchStartX = e.touches[0].clientX;
-                }
-            };
-
-            const handleTouchMove = (e) => {
-                if (!this.isExpanded || this.targetElement.contains(document.activeElement)) return;
-                if (!e.touches || e.touches.length === 0) return;
-                
-                const touchY = e.touches[0].clientY;
-                const touchX = e.touches[0].clientX;
-                const deltaY = Math.abs(touchY - touchStartY);
-                const deltaX = Math.abs(touchX - touchStartX);
-                
-                // 移動端 UX 優化：
-                // 1. 若為純水平滑動 (如手勢返回) -> 不干擾
-                // 2. 垂直滑動超過 15px -> 視為明確的閱讀/滾動意圖，才觸發縮小
-                // 這樣可以避免使用者點擊時的手指微小偏移導致強制縮小，提升魯棒性
-                if (deltaY > 15 && deltaY > deltaX) {
-                    checkScrollIntent();
-                }
-            };
-
-            const handleWheel = (e) => {
-                // 電腦端 UX 優化：滑鼠滾輪/觸控板滾動超過特定閾值才縮小
-                if (Math.abs(e.deltaY) > 5) checkScrollIntent();
-            };
-
-            const handleScroll = () => {
-                // 原生 scroll 捕捉：應對拖曳捲軸、鍵盤上下鍵、PgUp/PgDn 等各種瀏覽器自帶的滾動行為
-                checkScrollIntent();
-            };
-            
-            // 使用 capture: true 強制在事件傳遞的最高層攔截 (無視子元素 stopPropagation)
-            window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-            window.addEventListener('wheel', handleWheel, { passive: true, capture: true });
-            window.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-            window.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true });
+            this.targetElement.addEventListener('focusin', this._focusInHandler);
+            this.targetElement.addEventListener('focusout', this._focusOutHandler);
+            this.targetElement.addEventListener('mousedown', this._mouseDownHandler);
         }
 
         handleFocusIn() {
