@@ -115,7 +115,46 @@
                 MAX_SPEED: 2,
                 MAX_FORCE: 0.05
             }
-        }
+        },
+
+        /* === Private GEMs (Local Prompts Extension) === */
+        CUSTOM_GEMS: [
+            {
+        id: 'gem-standard-llm',
+        icon: '🤖',
+        title: '標準化語言模型決策器',
+        desc: '整合 FFC、SCQA、STAR、PREP 等 12 項核心表達模型的最佳化決策策略',
+        prompt: '請依據情境選用最佳化決策策略回應。工具庫包含：1.FFC（感受/事實/期待）；2.SCQA（情境/衝突/問題/答案）；3.STAR（情境/任務/行動/結果）；4.FIRE（事實/解讀/反應/結果）；5.PREP（觀點/理由/例子/重述）；6.RIDE（風險/利益/差異/影響）；7.SCRTV（情境/衝突/原因/策略/價值）；8.FAB模型（Function/Advantages/Benefit）；9.六頂思考帽子與無權重決策矩陣表格；10.第一性原理+費曼總結+表格+Mermaid；11.競品分析「3層漏斗機制」（概念層/邏輯層/系統層Mermaid）；12.多模態推理框架（CoT+ReAct+ToT+自一致性）。\n\n【特殊觸發字】末尾帶「66」用項目9；「==」用項目12；「--」或「—」用項目10；「33」用項目11。\n\n【回覆約束】\n1. 直奔核心，說明選用模型，組合成自然、親切且專業的文字。\n2. 嚴禁 AI 煽情、客套、贅詞、生硬感。\n3. 避免過度使用連接詞，禁用邏輯鏈（首先、其次、最後、此外、因此、由此可見、確實、事實上）、總結詞（綜上所述、總的來說、顯而易見）、絕對化表達（完美方案、徹底解決、確保、以確保、全方位保障）。\n4. Mermaid 圖表內換行符 \\n 必須替換為 <br>，且行末不得有 <br>。\n\n'
+    },
+    {
+        id: 'gem-text-proofreader',
+        icon: '✍️',
+        title: '首席校稿總編輯',
+        desc: '修正台灣繁體錯別字、語言癌與 AI 腔，輸出出版級文本',
+        prompt: '請扮演 Google DeepMind 首席中文語言學家兼台灣資深出版總編輯。基於「精簡、精確、信達雅」原則，針對提供的文本進行深度校對與潤飾，嚴格執行以下流程：\n\n【校對標準】\n1. 錯誤偵測：修正形近/音近字，嚴格區分「的、得、地」，標點符號一律改為全形並符合教育部規範（禁用波浪號 ~）。\n2. 消除語言癌：刪除冗贅動詞（如「進行一個...的動作」改為直接動詞）與口語填充字（做一個...的部分、基本上、其實、那）。\n3. 去除 AI 味：禁用破折號補充說明（改用逗號/句號），拒絕油膩排比句與西式被動語態（改為主動語態）。\n4. 邏輯風格優化：長句適當斷句，遵守「最小干預原則」，保持原作者語氣。\n\n【負向約束】嚴禁說教與客套話，不輸出「身為語言模型...」等語句。保持事實，不捏造數據。\n\n【輸出格式】\n### 第一部分：修訂對照表 (Markdown Table)\n| 原文 | 修改後 | 修改原因 (標註：錯字、語言癌、標點、語氣潤飾) |\n| :--- | :--- | :--- |\n### 第二部分：校對後全文\n\n'
+    },
+            {
+        id: 'gem-weightlifting-biomechanics',
+        icon: '🏋️‍♂️',
+        title: '舉重生物力學分析系統',
+        desc: '抓舉與挺舉的運動學數據提取、逐幀分析與第一性原理技術修正',
+        prompt: '請扮演奧林匹克舉重（抓舉/挺舉）生物力學分析專家系統。請依據輸入參數（動作項目、影片幀率、專注核心）對影像進行動態學數據提取，並依專業標準提供技術修正方案。本系統一律以繁體中文回覆，且必須大量運用商業級 Mermaid 代碼與多維度數據表格進行深入拆解。\n\n【分析框架與核心指標】\n1. 階段劃分（Phase Segmentation）：\n   - 第一拉引（地面至膝關節）\n   - 第二拉引（膝關節至發力點/伸展）\n   - 第三拉引（發力轉身/下穿至槓下）\n   - 接槓與站起支撐\n2. 評估維度：\n   - 槓頭軌跡（Bar Path）：水平位移量（是否繞槓/微幅環繞）、垂直加速度峰值。\n   - 關節運動學（Joint Kinematics）：最大發力時的髖、膝、踝關節伸展角度。\n   - 步法（Footwork）：雙腳接觸時機與左右/前後位移量。\n   - 質心（COM）：整體動作過程中的重心動態平衡。\n\n【輸出結構與約束】\n1. 數據摘要與逐幀分析：必須使用 Markdown 表格詳列關鍵位置的關節角度與動態參數。\n2. 技術缺失根因分析：運用第一性原理（First Principles）直擊核心錯誤（Root Cause），嚴禁籠統模糊的字眼，全面採用量化描述。\n3. 修正訓練協定：提供具體的針對性輔助訓練動作與教練提示詞（Cues）。\n4. 可視化呈現：必須利用商業級 Mermaid 代碼（如流程圖、時序圖或狀態圖）與多維度表格，呈現各階段關鍵點分析與最終結論。\n\n'
+    },
+    {
+        id: 'gem-industrial-architect',
+        icon: '💻',
+        title: '工控代碼架構師',
+        desc: '專精 C#、C++、Python 工控系統、多執行緒優化與資源治理的架構指南',
+        prompt: '請扮演 C#、C++、Python 專業代碼架構師。依序代碼順序選用：C# > C++。遵循四大原則：1.動手前思考（明確假設、拒絕模糊）；2.至簡至上（無預期功能與多餘抽象）；3.精確微創修改（不修相鄰無損代碼，符合既有風格）；4.目標驅動執行（建立 IMPLEMENTATION_PLAN.md、編寫測試、驗證邊界）。\n\n【架構與優化範疇】\n1. 效能調優與資源治理：使用語言原生 Profiler 分析 Spot，設計 Lock-free 結構、TPL 多執行緒優化或 OpenMP 並行計算；嚴格執行資源釋放（C# Dispose, C++ RAII）與 GC 治理（ pause ≤ 200ms）。\n2. 單元測試：覆蓋正負向、邊界（Null、極值）與高併發壓力測試，確保核心邏輯覆蓋率 ≥ 80%。\n3. 錯誤診斷：依循 [問題定位] → [根因分析] → [修復方案] → [驗證方法] 輸出。\n4. 架構重構：繪製 Mermaid 模組圖，降低圈複雜度 ≥ 40%，提升響應速度 ≥ 30%。\n\n'
+    },
+            { id: 'gem-coder', icon: '💻', title: 'Senior Developer', desc: '程式碼審查和優化', prompt: 'As a Senior Developer, please review the following requirements/code. Focus on performance, security, and industrial-grade practices:\\n\\n' },
+            { id: 'gem-refactor', icon: '🔨', title: 'Refactoring Master', desc: '清理、優化和現代化程式碼', prompt: 'Analyze the following code. Refactor it to improve readability, maintainability, and reduce cyclomatic complexity without changing its outward behavior. Use modern best practices:\\n\\n' },
+            { id: 'gem-debugger', icon: '🐛', title: 'Bug Hunter', desc: '根本原因分析與修復', prompt: 'Act as a senior debugging engineer. Analyze the following error log or buggy code, determine the root cause step-by-step, and propose a robust fix:\\n\\n' },
+            { id: 'gem-ux', icon: '🎨', title: 'UX/UI Designer', desc: '介面與可用性評估', prompt: 'From a UX/UI perspective, please analyze the following concept for usability, accessibility, and modern design metrics. Suggest concrete improvements:\\n\\n' },
+            { id: 'gem-writer', icon: '📝', title: 'Tech Writer', desc: '專業文件撰寫', prompt: 'Act as an expert technical writer. Create clear, concise, and professional documentation (e.g., README, API doc) for the following:\\n\\n' },
+            { id: 'gem-regex', icon: '🔍', title: 'Regex Expert', desc: 'Regex Gexplain', prompt: 'Generate a robust regular expression for the following requirement. Provide a clear breakdown of how the regex works and provide test cases:\\n\\n' },
+            { id: 'gem-translator', icon: '🌐', title: 'Translator (zh-TW)', desc: '繁中翻譯', prompt: 'Please translate the following text into elegant Traditional Chinese. Ensure it retains professional terminology and natural phrasing:\\n\\n' }
+        ]
     };
 
     const log = (...args) => CONFIG.DEBUG && console.log('[Gemini v6.0]', ...args);
@@ -653,7 +692,7 @@
                     padding ${CONFIG.UI_AURA.ANIMATION.TIMING},
                     margin ${CONFIG.UI_AURA.ANIMATION.TIMING},
                     border-radius ${CONFIG.UI_AURA.ANIMATION.TIMING},
-                    transform ${CONFIG.UI_AURA.ANIMATION.TIMING}, 
+                    transform ${CONFIG.UI_AURA.ANIMATION.TIMING},
                     opacity ${CONFIG.UI_AURA.ANIMATION.TIMING},
                     box-shadow ${CONFIG.UI_AURA.ANIMATION.TIMING},
                     bottom ${CONFIG.UI_AURA.ANIMATION.TIMING};
@@ -690,7 +729,7 @@
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        
+
         /* 極度置底與置中：脫離文件流，解鎖上方空間 */
         position: fixed !important;
         bottom: 24px !important;
@@ -2511,7 +2550,7 @@
 
         init() {
             this.findTarget();
-            
+
             // Start an observer to handle delayed mounts and DOM replacements of chat input
             const obs = new MutationObserver(() => {
                 // 若目前的目標元素被從 DOM 樹中移除 (SPA 框架重新渲染)，重置並重新尋找
@@ -2519,7 +2558,7 @@
                     this.targetElement = null;
                     this.isExpanded = true;
                 }
-                
+
                 if (!this.targetElement) {
                     this.findTarget();
                 }
@@ -2539,7 +2578,7 @@
 
             const checkScrollIntent = () => {
                 if (!this.targetElement || !this.isExpanded || this.targetElement.contains(document.activeElement)) return;
-                
+
                 // 節流處理頻繁的觸發
                 if (interactionRAF) cancelAnimationFrame(interactionRAF);
                 interactionRAF = requestAnimationFrame(() => {
@@ -2558,12 +2597,12 @@
             const handleTouchMove = (e) => {
                 if (!this.targetElement || !this.isExpanded || this.targetElement.contains(document.activeElement)) return;
                 if (!e.touches || e.touches.length === 0) return;
-                
+
                 const touchY = e.touches[0].clientY;
                 const touchX = e.touches[0].clientX;
                 const deltaY = Math.abs(touchY - touchStartY);
                 const deltaX = Math.abs(touchX - touchStartX);
-                
+
                 // 移動端 UX 優化：
                 // 1. 若為純水平滑動 (如手勢返回) -> 不干擾
                 // 2. 垂直滑動超過 15px -> 視為明確的閱讀/滾動意圖，才觸發縮小
@@ -2571,7 +2610,7 @@
                     // 若在觸控滑動時發現鍵盤是展開的 (通常 document.activeElement 仍為 input)
                     // 此時若使用者滑動對話，我們應該強制 Blur 解面盤，並縮小膠囊，給予最佳的沉浸式閱讀體驗
                     // 工業級防呆：主動釋放焦點
-                    if (document.activeElement && 
+                    if (document.activeElement &&
                         (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
                         document.activeElement.blur();
                     }
@@ -2590,7 +2629,7 @@
                 // 原生 scroll 捕捉：應對拖曳捲軸、鍵盤上下鍵、PgUp/PgDn 等各種瀏覽器自帶的滾動行為
                 checkScrollIntent();
             };
-            
+
             // 使用 capture: true 強制在事件傳遞的最高層攔截 (無視子元素 stopPropagation)
             window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
             window.addEventListener('wheel', handleWheel, { passive: true, capture: true });
@@ -2601,7 +2640,7 @@
         findTarget() {
             let el = document.querySelector(CONFIG.UI_AURA.SELECTORS.TARGET);
             if (!el) el = document.querySelector(CONFIG.UI_AURA.SELECTORS.FALLBACK);
-            
+
             if (el && !this.targetElement) {
                 this.targetElement = el;
                 log('找到目標面板，開始掛載膠囊 UI');
@@ -2613,7 +2652,7 @@
 
         mount() {
             this.targetElement.classList.add('gemini-ui-smart-container', 'gemini-ui-expanded');
-            
+
             // 綁定焦點事件 (使用 Event Delegation 架構)
             // 將事件處理器存起來以備之後移除 (若有需要)
             this._focusInHandler = this.handleFocusIn.bind(this);
@@ -2656,7 +2695,7 @@
             this.isExpanded = true;
             this.targetElement.classList.remove('gemini-ui-collapsed');
             this.targetElement.classList.add('gemini-ui-expanded');
-            
+
             // Allow child content pointer events again
             this.targetElement.querySelectorAll('*').forEach(child => {
                  child.style.pointerEvents = '';
@@ -2673,6 +2712,200 @@
             this.targetElement.classList.remove('gemini-ui-expanded');
             this.targetElement.classList.add('gemini-ui-collapsed');
             log('UI 縮成膠囊 (Collapsed)');
+        }
+    }
+
+    /* === Private GEMs Manager (v6.0) === */
+    class PrivateGEMsManager {
+        constructor() {
+            this.hasInjected = false;
+        }
+
+        init() {
+            const observer = new MutationObserver((mutations) => {
+                for (let m of mutations) {
+                    for (let node of m.addedNodes) {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.classList.contains('mat-mdc-menu-panel') && node.classList.contains('at-mentions-menu')) {
+                                this.injectGems(node);
+                            } else {
+                                const menu = node.querySelector('.mat-mdc-menu-panel.at-mentions-menu, .at-mentions-menu');
+                                if (menu) this.injectGems(menu);
+                            }
+                        }
+                    }
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+
+        injectGems(menuContainer) {
+            if (menuContainer.dataset.gemsInjected) return;
+            menuContainer.dataset.gemsInjected = 'true';
+
+            const content = menuContainer.querySelector('.mat-mdc-menu-content') || menuContainer;
+
+            // 等待 Angular 渲染完成
+            setTimeout(() => {
+                // UI & UX 強化：修改容器最大高度，避免我們的清單被截斷或隱藏
+                const pane = menuContainer.closest('.cdk-overlay-pane');
+                if (pane) {
+                    pane.style.height = 'auto'; // 解除原生限制
+                    pane.style.maxHeight = '75vh'; // 給予足夠高度
+                }
+                menuContainer.style.height = 'auto';
+                menuContainer.style.maxHeight = '75vh';
+                content.style.maxHeight = '75vh';
+                content.style.overflowY = 'auto'; // 開啟捲軸
+
+                // Add header
+                const header = document.createElement('div');
+                header.textContent = '🔒 Private GEMs (Local)';
+                header.style.fontSize = '12px';
+                header.style.color = 'var(--text-muted)';
+                header.style.padding = '12px 16px 4px 16px';
+                header.style.fontWeight = '700';
+                header.style.letterSpacing = '0.5px';
+                header.style.borderTop = '1px solid var(--border-color)';
+                header.style.marginTop = '4px';
+                content.appendChild(header);
+
+                CONFIG.CUSTOM_GEMS.forEach(gem => {
+                    const btn = document.createElement('button');
+                    // 模擬官方行為
+                    btn.className = 'mat-mdc-menu-item mat-mdc-focus-indicator';
+                    btn.role = 'menuitem';
+                    btn.style.display = 'flex';
+                    btn.style.alignItems = 'center';
+                    btn.style.gap = '12px';
+                    btn.style.minHeight = '52px';
+                    btn.style.width = '100%';
+                    btn.style.background = 'transparent';
+                    btn.style.border = 'none';
+                    btn.style.cursor = 'pointer';
+                    btn.style.padding = '8px 16px';
+                    btn.style.transition = 'background 0.2s ease';
+
+                    btn.onmouseenter = () => { btn.style.background = 'var(--bg-tertiary)'; };
+                    btn.onmouseleave = () => { btn.style.background = 'transparent'; };
+
+                    btn.innerHTML = `
+                        <span style="font-size: 20px; flex-shrink: 0;">${gem.icon}</span>
+                        <div style="display: flex; flex-direction: column; text-align: left;">
+                            <span style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px;">${gem.title}</span>
+                            <span style="font-size: 12px; color: var(--text-muted); line-height: 1.2;">${gem.desc}</span>
+                        </div>
+                    `;
+
+                    // 攔截滑鼠下壓事件，以防原生選單在我們點擊前 blur 消失
+                    btn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+
+                    // 使用 click 作為確認，體驗與原生一致
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // 1. 關閉原生的 Overlay 遮罩
+                        const backdrop = document.querySelector('.cdk-overlay-backdrop');
+                        if (backdrop) backdrop.click();
+
+                        // 隱藏目前選單
+                        const wrapper = menuContainer.closest('.cdk-overlay-container, .cdk-overlay-connected-position-bounding-box');
+                        if (wrapper && wrapper.parentElement) {
+                            // 提供一個稍微優雅的關閉
+                            wrapper.style.display = 'none';
+                        }
+
+                        // 2. 準備注入提示詞
+                        setTimeout(() => {
+                            this.applyGem(gem.prompt);
+                        }, 50);
+                    });
+
+                    content.appendChild(btn);
+                });
+
+                // 強制觸發 Window Resize 向 Angular 廣播重繪，解決版面遮擋
+                window.dispatchEvent(new Event('resize'));
+            }, 100);
+        }
+
+        applyGem(promptText) {
+            const editor = document.querySelector('.ql-editor');
+            if (!editor) return;
+
+            editor.focus();
+
+            // 如果有選取範圍或是最後一個字元為 @ ，清除該標記
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                let node = range.startContainer;
+
+                if (node.nodeType !== Node.TEXT_NODE && node.childNodes.length > 0 && range.startOffset > 0) {
+                    node = node.childNodes[range.startOffset - 1];
+                }
+
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    const atIndex = text.lastIndexOf('@', range.startOffset);
+                    if (atIndex !== -1) {
+                        range.setStart(node, atIndex);
+                        range.setEnd(node, range.startOffset);
+                        range.deleteContents();
+                    }
+                }
+            }
+
+            this.execInsert(promptText);
+
+            // 如果輸入框是折疊的，強制展開，讓使用者可以看到填入的文字
+            const smartContainer = document.querySelector('.gemini-ui-smart-container.gemini-ui-collapsed');
+            if (smartContainer) {
+                smartContainer.classList.remove('gemini-ui-collapsed');
+                smartContainer.classList.add('gemini-ui-expanded');
+            }
+        }
+
+        execInsert(text) {
+            const editor = document.querySelector('.ql-editor');
+            if (!editor) return;
+
+            // 工業級文本插入法: 使用 ClipboardEvent 進行原生貼上模擬 (與 Quill 最為相容)
+            const dataTransfer = new DataTransfer();
+            dataTransfer.setData('text/plain', text);
+            const pasteEvent = new ClipboardEvent('paste', {
+                clipboardData: dataTransfer,
+                bubbles: true,
+                cancelable: true
+            });
+
+            editor.dispatchEvent(pasteEvent);
+
+            if (!pasteEvent.defaultPrevented) {
+                // 退回使用 execCommand
+                const success = document.execCommand('insertText', false, text);
+                if (!success) {
+                    log('execCommand fallback for text injection');
+                    const textNode = document.createTextNode(text);
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        const range = sel.getRangeAt(0);
+                        range.insertNode(textNode);
+                        range.setStartAfter(textNode);
+                        range.setEndAfter(textNode);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                }
+            }
+
+            // 觸發更新事件
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+            editor.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
 
@@ -2699,6 +2932,15 @@
             uiManager.init();
         } catch (e) {
             log('Aura Engine initialization failed:', e);
+        }
+
+        /* === v6.0 Private GEMs Manager === */
+        try {
+            const gemsManager = new PrivateGEMsManager();
+            gemsManager.init();
+            log('✓ Private GEMs Manager initialized.');
+        } catch (e) {
+            log('Private GEMs initialization failed:', e);
         }
 
         /* 初始掃描 */
