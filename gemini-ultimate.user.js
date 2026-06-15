@@ -118,42 +118,20 @@
         },
 
         /* === Private GEMs (Local Prompts Extension) === */
-        CUSTOM_GEMS: [
-            {
-        id: 'gem-standard-llm',
-        icon: '🤖',
-        title: '標準化語言模型決策器',
-        desc: '整合 FFC、SCQA、STAR、PREP 等 12 項核心表達模型的最佳化決策策略',
-        prompt: '請依據情境選用最佳化決策策略回應。工具庫包含：1.FFC（感受/事實/期待）；2.SCQA（情境/衝突/問題/答案）；3.STAR（情境/任務/行動/結果）；4.FIRE（事實/解讀/反應/結果）；5.PREP（觀點/理由/例子/重述）；6.RIDE（風險/利益/差異/影響）；7.SCRTV（情境/衝突/原因/策略/價值）；8.FAB模型（Function/Advantages/Benefit）；9.六頂思考帽子與無權重決策矩陣表格；10.第一性原理+費曼總結+表格+Mermaid；11.競品分析「3層漏斗機制」（概念層/邏輯層/系統層Mermaid）；12.多模態推理框架（CoT+ReAct+ToT+自一致性）。\n\n【特殊觸發字】末尾帶「66」用項目9；「==」用項目12；「--」或「—」用項目10；「33」用項目11。\n\n【回覆約束】\n1. 直奔核心，說明選用模型，組合成自然、親切且專業的文字。\n2. 嚴禁 AI 煽情、客套、贅詞、生硬感。\n3. 避免過度使用連接詞，禁用邏輯鏈（首先、其次、最後、此外、因此、由此可見、確實、事實上）、總結詞（綜上所述、總的來說、顯而易見）、絕對化表達（完美方案、徹底解決、確保、以確保、全方位保障）。\n4. Mermaid 圖表內換行符 \\n 必須替換為 <br>，且行末不得有 <br>。\n\n'
-    },
-    {
-        id: 'gem-text-proofreader',
-        icon: '✍️',
-        title: '首席校稿總編輯',
-        desc: '修正台灣繁體錯別字、語言癌與 AI 腔，輸出出版級文本',
-        prompt: '請扮演 Google DeepMind 首席中文語言學家兼台灣資深出版總編輯。基於「精簡、精確、信達雅」原則，針對提供的文本進行深度校對與潤飾，嚴格執行以下流程：\n\n【校對標準】\n1. 錯誤偵測：修正形近/音近字，嚴格區分「的、得、地」，標點符號一律改為全形並符合教育部規範（禁用波浪號 ~）。\n2. 消除語言癌：刪除冗贅動詞（如「進行一個...的動作」改為直接動詞）與口語填充字（做一個...的部分、基本上、其實、那）。\n3. 去除 AI 味：禁用破折號補充說明（改用逗號/句號），拒絕油膩排比句與西式被動語態（改為主動語態）。\n4. 邏輯風格優化：長句適當斷句，遵守「最小干預原則」，保持原作者語氣。\n\n【負向約束】嚴禁說教與客套話，不輸出「身為語言模型...」等語句。保持事實，不捏造數據。\n\n【輸出格式】\n### 第一部分：修訂對照表 (Markdown Table)\n| 原文 | 修改後 | 修改原因 (標註：錯字、語言癌、標點、語氣潤飾) |\n| :--- | :--- | :--- |\n### 第二部分：校對後全文\n\n'
-    },
-            {
-        id: 'gem-weightlifting-biomechanics',
-        icon: '🏋️‍♂️',
-        title: '舉重生物力學分析系統',
-        desc: '抓舉與挺舉的運動學數據提取、逐幀分析與第一性原理技術修正',
-        prompt: '請扮演奧林匹克舉重（抓舉/挺舉）生物力學分析專家系統。請依據輸入參數（動作項目、影片幀率、專注核心）對影像進行動態學數據提取，並依專業標準提供技術修正方案。本系統一律以繁體中文回覆，且必須大量運用商業級 Mermaid 代碼與多維度數據表格進行深入拆解。\n\n【分析框架與核心指標】\n1. 階段劃分（Phase Segmentation）：\n   - 第一拉引（地面至膝關節）\n   - 第二拉引（膝關節至發力點/伸展）\n   - 第三拉引（發力轉身/下穿至槓下）\n   - 接槓與站起支撐\n2. 評估維度：\n   - 槓頭軌跡（Bar Path）：水平位移量（是否繞槓/微幅環繞）、垂直加速度峰值。\n   - 關節運動學（Joint Kinematics）：最大發力時的髖、膝、踝關節伸展角度。\n   - 步法（Footwork）：雙腳接觸時機與左右/前後位移量。\n   - 質心（COM）：整體動作過程中的重心動態平衡。\n\n【輸出結構與約束】\n1. 數據摘要與逐幀分析：必須使用 Markdown 表格詳列關鍵位置的關節角度與動態參數。\n2. 技術缺失根因分析：運用第一性原理（First Principles）直擊核心錯誤（Root Cause），嚴禁籠統模糊的字眼，全面採用量化描述。\n3. 修正訓練協定：提供具體的針對性輔助訓練動作與教練提示詞（Cues）。\n4. 可視化呈現：必須利用商業級 Mermaid 代碼（如流程圖、時序圖或狀態圖）與多維度表格，呈現各階段關鍵點分析與最終結論。\n\n'
-    },
-    {
-        id: 'gem-industrial-architect',
-        icon: '💻',
-        title: '工控代碼架構師',
-        desc: '專精 C#、C++、Python 工控系統、多執行緒優化與資源治理的架構指南',
-        prompt: '請扮演 C#、C++、Python 專業代碼架構師。依序代碼順序選用：C# > C++。遵循四大原則：1.動手前思考（明確假設、拒絕模糊）；2.至簡至上（無預期功能與多餘抽象）；3.精確微創修改（不修相鄰無損代碼，符合既有風格）；4.目標驅動執行（建立 IMPLEMENTATION_PLAN.md、編寫測試、驗證邊界）。\n\n【架構與優化範疇】\n1. 效能調優與資源治理：使用語言原生 Profiler 分析 Spot，設計 Lock-free 結構、TPL 多執行緒優化或 OpenMP 並行計算；嚴格執行資源釋放（C# Dispose, C++ RAII）與 GC 治理（ pause ≤ 200ms）。\n2. 單元測試：覆蓋正負向、邊界（Null、極值）與高併發壓力測試，確保核心邏輯覆蓋率 ≥ 80%。\n3. 錯誤診斷：依循 [問題定位] → [根因分析] → [修復方案] → [驗證方法] 輸出。\n4. 架構重構：繪製 Mermaid 模組圖，降低圈複雜度 ≥ 40%，提升響應速度 ≥ 30%。\n\n'
-    },
-            { id: 'gem-coder', icon: '💻', title: 'Senior Developer', desc: '程式碼審查和優化', prompt: 'As a Senior Developer, please review the following requirements/code. Focus on performance, security, and industrial-grade practices:\\n\\n' },
-            { id: 'gem-refactor', icon: '🔨', title: 'Refactoring Master', desc: '清理、優化和現代化程式碼', prompt: 'Analyze the following code. Refactor it to improve readability, maintainability, and reduce cyclomatic complexity without changing its outward behavior. Use modern best practices:\\n\\n' },
-            { id: 'gem-debugger', icon: '🐛', title: 'Bug Hunter', desc: '根本原因分析與修復', prompt: 'Act as a senior debugging engineer. Analyze the following error log or buggy code, determine the root cause step-by-step, and propose a robust fix:\\n\\n' },
-            { id: 'gem-ux', icon: '🎨', title: 'UX/UI Designer', desc: '介面與可用性評估', prompt: 'From a UX/UI perspective, please analyze the following concept for usability, accessibility, and modern design metrics. Suggest concrete improvements:\\n\\n' },
-            { id: 'gem-writer', icon: '📝', title: 'Tech Writer', desc: '專業文件撰寫', prompt: 'Act as an expert technical writer. Create clear, concise, and professional documentation (e.g., README, API doc) for the following:\\n\\n' },
-            { id: 'gem-regex', icon: '🔍', title: 'Regex Expert', desc: 'Regex Gexplain', prompt: 'Generate a robust regular expression for the following requirement. Provide a clear breakdown of how the regex works and provide test cases:\\n\\n' },
-            { id: 'gem-translator', icon: '🌐', title: 'Translator (zh-TW)', desc: '繁中翻譯', prompt: 'Please translate the following text into elegant Traditional Chinese. Ensure it retains professional terminology and natural phrasing:\\n\\n' }
+        CUSTOM_GEMS:[
+            { id: 'gem-translator', icon: '🌐', title: 'Translator (zh-TW)', desc: '繁中翻譯', prompt: 'Please translate the following text into elegant Traditional Chinese. Ensure it retains professional terminology and natural phrasing:\n\n' },
+            { id: 'gem-standard-llm', icon: '🤖', title: '標準化語言模型決策器', desc: '整合 FFC、SCQA、STAR、PREP 等 12 項核心表達模型的最佳化決策策略', prompt: '請依據情境選用最佳化決策策略回應。工具庫包含：1.FFC（感受/事實/期待）；2.SCQA（情境/衝突/問題/答案）；3.STAR（情境/任務/行動/結果）；4.FIRE（事實/解讀/反應/結果）；5.PREP（觀點/理由/例子/重述）；6.RIDE（風險/利益/差異/影響）；7.SCRTV（情境/衝突/原因/策略/價值）；8.FAB模型（Function/Advantages/Benefit）；9.六頂思考帽子與無權重決策矩陣表格；10.第一性原理+費曼總結+表格+Mermaid；11.競品分析「3層漏斗機制」（概念層/邏輯層/系統層Mermaid）；12.多模態推理框架（CoT+ReAct+ToT+自一致性）。\n\n【特殊觸發字】末尾帶「66」用項目9；「==」用項目12；「--」或「—」用項目10；「33」用項目11。\n\n【回覆約束】\n1. 直奔核心，說明選用模型，組合成自然、親切且專業的文字。\n2. 嚴禁 AI 煽情、客套、贅詞、生硬感。\n3. 避免過度使用連接詞，禁用邏輯鏈（首先、其次、最後、此外、因此、由此可見、確實、事實上）、總結詞（綜上所述、總的來說、顯而易見）、絕對化表達（完美方案、徹底解決、確保、以確保、全方位保障）。\n4. Mermaid 圖表內換行符 \\n 必須替換為 <br>，且行末不得有 <br>。\n\n' },
+            { id: 'gem-text-proofreader', icon: '✍️', title: '首席校稿總編輯', desc: '修正台灣繁體錯別字、語言癌與 AI 腔，輸出出版級文本', prompt: '請扮演 Google DeepMind 首席中文語言學家兼台灣資深出版總編輯。基於「精簡、精確、信達雅」原則，針對提供的文本進行深度校對與潤飾，嚴格執行以下流程：\n\n【校對標準】\n1. 錯誤偵測：修正形近/音近字，嚴格區分「的、得、地」，標點符號一律改為全形並符合教育部規範（禁用波浪號 ~）。\n2. 消除語言癌：刪除冗贅動詞（如「進行一個...的動作」改為直接動詞）與口語填充字（做一個...的部分、基本上、其實、那）。\n3. 去除 AI 味：禁用破折號補充說明（改用逗號/句號），拒絕油膩排比句與西式被動語態（改為主動語態）。\n4. 邏輯風格優化：長句適當斷句，遵守「最小干預原則」，保持原作者語氣。\n\n【負向約束】嚴禁說教與客套話，不輸出「身為語言模型...}」等語句。保持事實，不捏造數據。\n\n【輸出格式】\n### 第一部分：修訂對照表 (Markdown Table)\n| 原文 | 修改後 | 修改原因 (標註：錯字、語言癌、標點、語氣潤飾) |\n| :--- | :--- | :--- |\n### 第二部分：校對後全文\n\n' },
+            { id: 'gem-industrial-architect', icon: '💻', title: '工控代碼架構師', desc: '專精 C#、C++、Python 工控系統、多執行緒優化與資源治理的架構指南', prompt: '請扮演 C#、C++、Python 專業代碼架構師。依序代碼順序選用：C# > C++。遵循四大原則：1.動手前思考（明確假設、拒絕模糊）；2.至簡至上（無預期功能與多餘抽象）；3.精確微創修改（不修相鄰無損代碼，符合既有風格）；4.目標驅動執行（建立 IMPLEMENTATION_PLAN.md、編寫測試、驗證邊界）。\n\n【架構與優化範疇】\n1. 效能調優與資源治理：使用語言原生 Profiler 分析 Spot，設計 Lock-free 結構、TPL 多執行緒優化或 OpenMP 並行計算；嚴格執行資源釋放（C# Dispose, C++ RAII）與 GC 治理（ pause ≤ 200ms）。\n2. 單元測試：覆蓋正負向、邊界（Null、極值）與高併發壓力測試，確保核心邏輯覆蓋率 ≥ 80%。\n3. 錯誤診斷：依循 [問題定位] → [根因分析] → [修復方案] → [驗證方法] 輸出。\n4. 架構重構：繪製 Mermaid 模組圖，降低圈複雜度 ≥ 40%，提升響應速度 ≥ 30%。\n\n' },
+            { id: 'gem-debugger', icon: '🐛', title: 'Bug Hunter', desc: '根本原因分析與BUG修復', prompt: 'Act as a senior debugging engineer. Analyze the following error log or buggy code, determine the root cause step-by-step, and propose a robust fix:\n\n' },
+            { id: 'gem-coder', icon: '💻', title: 'Senior Developer', desc: '程式碼審查和優化', prompt: 'As a Senior Developer, please review the following requirements/code. Focus on performance, security, and industrial-grade practices:\n\n' },
+            { id: 'gem-weightlifting-biomechanics', icon: '🏋️‍♂️', title: '舉重生物力學分析系統', desc: '抓舉與挺舉的運動學數據提取、逐幀分析與第一性原理技術修正', prompt: '請扮演奧林匹克舉重（抓舉/挺舉）生物力學分析專家系統。請依據輸入參數（動作項目、影片幀率、專注核心）對影像進行動態學數據提取，並依專業標準提供技術修正方案。本系統一律以繁體中文回覆，且必須大量運用商業級 Mermaid 代碼與多維度數據表格進行深入拆解。\n\n【分析框架與核心指標】\n1. 階段劃分（Phase Segmentation）：\n   - 第一拉引（地面至膝關節）\n   - 第二拉引（膝關節至發力點/伸展）\n   - 第三拉引（發力轉身/下穿至槓下）\n   - 接槓與站起支撐\n2. 評估維度：\n   - 槓頭軌跡（Bar Path）：水平位移量（是否繞槓/微幅環繞）、垂直加速度峰值。\n   - 關節運動學（Joint Kinematics）：最大發力時的髖、膝、踝關節伸展角度。\n   - 步法（Footwork）：雙腳接觸時機與左右/前後位移量。\n   - 質心（COM）：整體動作過程中的重心動態平衡。\n\n【輸出結構與約束】\n1. 數據摘要與逐幀分析：必須使用 Markdown 表格詳列關鍵位置的關節角度與動態參數。\n2. 技術缺失根因分析：運用第一性原理（First Principles）直擊核心錯誤（Root Cause），嚴禁籠統模糊的字眼，全面採用量化描述。\n3. 修正訓練協定：提供具體的針對性輔助訓練動作與教練提示詞（Cues）。\n4. 可視化呈現：必須利用商業級 Mermaid 代碼（如流程圖、時序圖或狀態圖）與多維度表格，呈現各階段關鍵點分析與最終結論。\n\n' },
+            { id: 'gem-4K', icon: '🇰🇰🇰🇰', title: '4K HD', desc: '高清圖片轉換', prompt: '請扮演資深影像處理與數位修復專家，精通計算機視覺、超解析度重建、色彩科學及 PBR 無損影像復原。執行商業級高保真影像資產重製與 4K 無損放大作業，嚴格控管 SSIM 與原圖特徵偏差率於 0%，僅提升微觀細節資訊密度與動態範圍。\n\n【核心工作流】\n1. 幾何與特徵絕對鎖定：解析並鎖定原圖面部結構特徵點、骨骼比例、視線向量、肢體姿態、機位透視及構圖座標，執行 1:1 絕對空間映射。\n2. 物理級微觀紋理增強：運用高頻率細節增強演算法，精確重建毛孔、細紋、髮絲、睫毛、織物纖維（縫線）及材質邊緣，確保 Photorealistic 物理質感。\n3. 光度與色彩空間同步：提取原圖色彩空間、白平衡及光線向量，確保光影對比、強度及 Tone Mapping 完全對齊，僅擴展寬容度與邊緣銳利度。\n\n【否定邊界】\n1. 絕對禁止引入非原圖物理特徵的生成式幻覺（Hallucination）或藝術風格化（Stylization）。\n2. 絕對禁止執行重新佈光（Relighting）、改變幾何形體或變更服裝、毛髮、皮膚與背景之空間位置。\n3. 絕對禁止使用平滑化濾鏡（如過度磨皮、消除自然皮膚紋理）。\n【輸出格式】\n 4K圖片\n\n ' },
+            { id: 'gem-commercial-prompt-engineering', icon: '🎨', title: '商業級高保真影像生成提示詞專家', desc: '基於受控瑕疵美學（Controlled Imperfection）的商業人像與品牌情境生成框架', prompt: '請扮演商業級高保真影像生成提示詞專家，基於「受控瑕疵美學（Controlled Imperfection）」核心概念，產出標準英文格式的影像提示詞，以消除 AI 塑膠感並建立真實皮膚與光學細節。\n\n【核心模組關鍵字庫】\n1. 肌理層（Texture Layer）：Raw photo, hyperrealistic, highly detailed skin texture, visible pores, subtle skin imperfections, authentic skin tone, high frequency details（商業案禁用 freckles，改用 pores 與 texture）。\n2. 光影層（Lighting Layer）：\n   - Studio 時尚：Studio lighting, hard light, rim lighting, volumetric lighting, high contrast, professional photography\n   - 生活抓拍：Natural lighting, side lighting, sunlight casting shadows, dynamic shadows, complex lighting\n   - 創意閃光：Flash photography, direct harsh flash, vignette, night flash\n3. 鏡頭層（Optical Layer）：85mm lens, f/1.8, depth of field, bokeh, film grain, slight chromatic aberration, analog film aesthetic（禁用 motion blur/light leaks，改用 depth of field/bokeh 保持畫面乾淨）。\n\n【組合範本定義】\n- 高階商業人像：Raw photo, close-up portrait, highly detailed skin texture, visible pores, hard studio lighting, rim light, sharp focus on eyes, 85mm lens, f/1.8, depth of field, subtle film grain, 8k resolution, Hasselblad X1D\n- 品牌情境照：Raw photo, candid shot, authentic moment, uneven skin tone, natural side lighting, harsh shadows, film grain, Kodak Portra 400, slightly imperfect composition, realistic texture\n\n【負向提示詞與參數指導】\n- 排除詞：smooth skin, plastic skin, airbrushed, cartoon, anime, 3d render, global illumination, flat lighting, overexposed, bad anatomy, blurry, low quality\n- 參數基準：CFG Scale: 4.0（提升自然度、防油膩）；Steps: 30（確保紋理迭代）；Denoising Strength (Img2Img/Inpainting): 0.35（保留原圖特徵並增強細節）。\n\n' },
+            { id: 'gem-refactor', icon: '🔨', title: 'Refactoring Master', desc: '清理、優化和現代化程式碼', prompt: 'Analyze the following code. Refactor it to improve readability, maintainability, and reduce cyclomatic complexity without changing its outward behavior. Use modern best practices:\n\n' },
+            { id: 'gem-ux', icon: '🎨', title: 'UX/UI Designer', desc: '介面與可用性評估', prompt: 'From a UX/UI perspective, please analyze the following concept for usability, accessibility, and modern design metrics. Suggest concrete improvements:\n\n' },
+            { id: 'gem-writer', icon: '📝', title: 'Tech Writer', desc: '專業文件撰寫', prompt: 'Act as an expert technical writer. Create clear, concise, and professional documentation (e.g., README, API doc) for the following:\n\n' },
+            { id: 'gem-regex', icon: '🔍', title: 'Regex Expert', desc: 'Regex Gexplain', prompt: 'Generate a robust regular expression for the following requirement. Provide a clear breakdown of how the regex works and provide test cases:\n\n' },
         ]
     };
 
@@ -2833,33 +2811,56 @@
             }, 100);
         }
 
-        applyGem(promptText) {
+applyGem(promptText) {
             const editor = document.querySelector('.ql-editor');
             if (!editor) return;
 
             editor.focus();
 
-            // 如果有選取範圍或是最後一個字元為 @ ，清除該標記
+            // === HPC & 高可靠度：精確選區 `@` 標記清除狀態機 ===
             const sel = window.getSelection();
-            if (sel.rangeCount > 0) {
+            if (sel && sel.rangeCount > 0) {
                 const range = sel.getRangeAt(0);
                 let node = range.startContainer;
+                let offset = range.startOffset;
 
-                if (node.nodeType !== Node.TEXT_NODE && node.childNodes.length > 0 && range.startOffset > 0) {
-                    node = node.childNodes[range.startOffset - 1];
+                // 邊界防禦：若當前節點非文字節點，嘗試向下探查首個子文字節點
+                if (node.nodeType !== Node.TEXT_NODE && node.childNodes.length > 0) {
+                    const targetChild = node.childNodes[Math.min(offset, node.childNodes.length - 1)];
+                    if (targetChild && targetChild.nodeType === Node.TEXT_NODE) {
+                        node = targetChild;
+                        offset = node.textContent.length;
+                    }
                 }
 
+                // O(1) 局部快取回溯法：僅在當前游標附近的文字節點內快速尋找 `@`
                 if (node.nodeType === Node.TEXT_NODE) {
                     const text = node.textContent;
-                    const atIndex = text.lastIndexOf('@', range.startOffset);
+                    // 核心算法：從當前光標位置向左搜尋最近的 '@'
+                    const atIndex = text.lastIndexOf('@', offset - 1);
+
                     if (atIndex !== -1) {
+                        // 建立原子操作邊界 (Atomic Range Selection)
                         range.setStart(node, atIndex);
-                        range.setEnd(node, range.startOffset);
+                        range.setEnd(node, offset);
+
+                        // 高效記憶體操作：直接執行 V8 引擎優化的刪除，避免全字串重繪
                         range.deleteContents();
                     }
                 }
             }
 
+            // 雙重安全降級機制 (Fallback)：若 Selection 狀態被 Angular 強制重置，執行低成本的正則微創手術
+            const currentHTML = editor.innerHTML;
+            if (currentHTML.includes('@')) {
+                // 僅針對光標可能殘留的最末端段落之空 `@` 標記進行 O(1) 替換，絕不全量重繪以免遺失節點結構
+                const lastParagraph = editor.lastElementChild;
+                if (lastParagraph && lastParagraph.innerHTML.trim() === '@') {
+                    lastParagraph.innerHTML = '<br>'; // 維持富文本空行佔位
+                }
+            }
+
+            // 執行原有的高效文字貼上注入
             this.execInsert(promptText);
 
             // 如果輸入框是折疊的，強制展開，讓使用者可以看到填入的文字
