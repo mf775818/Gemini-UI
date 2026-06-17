@@ -277,9 +277,9 @@
     }
 
     /* ── 表格（通用：工業級修復 Hover 重繪 Bug / 格線長駐） ── */
-    /* 1. 父容器控制水平滾動，避免 table 自我 block 化 */
+    /* 1. 父容器不允許出現橫向卷軸，防擠壓並強制換行 */
     .table-block, .tm-table-wrapper {
-        overflow-x: auto !important;
+        overflow-x: hidden !important;
         width: 100% !important; max-width: 100% !important;
         box-sizing: border-box !important;
         border-radius: 0.5rem;
@@ -299,7 +299,7 @@
         margin: 0 !important;
         border: none !important;
         box-shadow: none !important;
-        table-layout: fixed;
+        table-layout: fixed !important;
     }
     /* 3. 獨立繪製單元格邊界 (Separated Grid Pattern) */
     .model-response-text th, .model-response-text td,
@@ -310,7 +310,9 @@
         padding: 0.75rem 1rem !important;
         font-family: var(--font-body) !important;
         font-size: var(--base-font-size) !important;
-        word-break: break-word;
+        word-break: break-all !important; /* 強制在任何字元間換行，徹底防止擠壓與橫向滾動 */
+        overflow-wrap: anywhere !important; /* 支援現代瀏覽器最細緻換行邊界 */
+        white-space: normal !important; /* 強制換行，取代 nowrap 及不自動換行 */
         vertical-align: middle !important;
     }
     /* 消除邊角多餘格線 */
@@ -341,8 +343,8 @@
     }
     .table-block.new-table-style th,
     .table-block.new-table-style td {
-        white-space: normal !important; overflow-wrap: break-word !important;
-        word-wrap: break-word !important; word-break: break-word !important; max-width: 0 !important;
+        white-space: normal !important; overflow-wrap: anywhere !important;
+        word-wrap: break-word !important; word-break: break-all !important; max-width: 0 !important;
     }
 
     /* ── 代碼（行內 / 塊） ── */
@@ -614,6 +616,37 @@
         opacity: 1;
     }
 
+    /* ── Excel-like 橫向拖曳欄寬調整 ── */
+    .tm-resizable-cell {
+        position: relative !important;
+    }
+    .tm-col-resizer {
+        position: absolute !important;
+        top: 0 !important;
+        right: -3px !important; /* 精確半交疊覆蓋，便於觸發 */
+        bottom: 0 !important;
+        width: 8px !important;
+        cursor: col-resize !important;
+        z-index: 100 !important;
+        user-select: none !important;
+        transition: background 0.15s ease-in-out;
+        background: transparent;
+    }
+    .tm-resizable-cell:hover .tm-col-resizer {
+        background: rgba(26, 115, 232, 0.15); /* 輕微懸停提示 */
+    }
+    .tm-col-resizer:hover {
+        background: var(--accent-blue, #1a73e8) !important; /* 高亮度懸停線 */
+        opacity: 0.8 !important;
+    }
+    .tm-col-resizer.tm-resizing {
+        background: var(--accent-blue, #1a73e8) !important;
+        width: 4px !important;
+        right: -1px !important;
+        opacity: 1 !important;
+        box-shadow: 0 0 8px var(--accent-blue, #1a73e8); /* 工業級指示光暈 */
+    }
+
     /* ── § 進階視圖切換 UX (State-Driven View Toggle) ── */
     .tm-view-container {
         position: relative;
@@ -645,7 +678,7 @@
     /* 為 Markdown 的內容提供限制，避免圖片或表格超出邊界 */
     .tm-preview-view img { max-width: 100%; height: auto; }
     .tm-preview-view pre, .tm-preview-view code { max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; box-sizing: border-box; }
-    .tm-preview-view table { display: block; max-width: 100%; overflow-x: auto; box-sizing: border-box; }
+    .tm-preview-view table { display: table !important; width: 100% !important; max-width: 100% !important; table-layout: fixed !important; overflow-x: hidden !important; box-sizing: border-box; }
 
     /* 雙面卡片模式 (Inline) Markdown / CSV */
     .tm-state-inline-preview .tm-raw-view { display: none !important; }
@@ -2396,6 +2429,147 @@
         }
     };
 
+    /* --- § 12.4.5 HPC Table Autofit Engine (自動化自調欄寬高效能運算引擎) --- */
+    const HpcTableAutofitEngine = {
+        queue: new Set(),
+        debounceTimer: null,
+        isProcessing: false,
+
+        queueTable(table) {
+            if (!table || !table.isConnected) return;
+            this.queue.add(table);
+            this.schedule();
+        },
+
+        schedule() {
+            if (this.debounceTimer) clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => {
+                requestAnimationFrame(() => this.processQueue());
+            }, 80); // 80ms debounce perfectly balances live response and CPU budget for streaming
+        },
+
+        processQueue() {
+            if (this.isProcessing) return;
+            this.isProcessing = true;
+
+            const tables = Array.from(this.queue).filter(t => t.isConnected);
+            this.queue.clear();
+
+            if (tables.length === 0) {
+                this.isProcessing = false;
+                return;
+            }
+
+            // --- HPC Batch Phase 1: Write (Preparation) ---
+            // Batch all reset operations together to allow the browser to process style recalculation in one single pass
+            const backups = [];
+            tables.forEach(table => {
+                const trs = table.querySelectorAll('tr');
+                if (trs.length === 0) return;
+                const firstRow = trs[0];
+                const cells = firstRow.querySelectorAll('th, td');
+                if (cells.length === 0) return;
+
+                const tableBackups = [];
+                trs.forEach(row => {
+                    const rowCells = row.querySelectorAll('th, td');
+                    rowCells.forEach(c => {
+                        tableBackups.push({
+                            el: c,
+                            whiteSpace: c.style.whiteSpace
+                        });
+                    });
+                });
+
+                backups.push({
+                    table,
+                    cells,
+                    trs,
+                    numCols: cells.length,
+                    tableBackups
+                });
+
+                // Write Layout Parameters
+                table.style.setProperty('table-layout', 'auto', 'important');
+                table.style.setProperty('width', 'max-content', 'important');
+                table.style.setProperty('min-width', 'max-content', 'important');
+
+                trs.forEach(row => {
+                    const rowCells = row.querySelectorAll('th, td');
+                    rowCells.forEach(c => {
+                        c.style.setProperty('width', 'auto', 'important');
+                        c.style.setProperty('min-width', 'auto', 'important');
+                        c.style.setProperty('white-space', 'nowrap', 'important');
+                    });
+                });
+            });
+
+            // --- HPC Batch Phase 2: Read (Measurement) ---
+            // Now we read metric properties (scrollWidth) across all tables sequentially. Because we have already reset styles,
+            // this reads from an aligned DOM state and causes ZERO layout thrashing.
+            const results = [];
+            backups.forEach(data => {
+                const { numCols, trs, cells, table, tableBackups } = data;
+                const optimalWidths = Array(numCols).fill(40);
+
+                trs.forEach(row => {
+                    const rowCells = row.querySelectorAll('th, td');
+                    for (let idx = 0; idx < numCols; idx++) {
+                        if (rowCells[idx]) {
+                            const cellW = rowCells[idx].scrollWidth + 32; // Reserve padding offset
+                            if (cellW > optimalWidths[idx]) {
+                                optimalWidths[idx] = cellW;
+                            }
+                        }
+                    }
+                });
+
+                // Safeguard limits: Math.min(500, Math.max(40, optimalWidth))
+                for (let idx = 0; idx < numCols; idx++) {
+                    optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
+                }
+
+                results.push({
+                    table,
+                    cells,
+                    numCols,
+                    optimalWidths,
+                    tableBackups
+                });
+            });
+
+            // --- HPC Batch Phase 3: Write (Restore & Style Application) ---
+            // Finally we lock down the computed responsive percentages to ensure robust display and high scroll performance
+            results.forEach(res => {
+                const { table, cells, numCols, optimalWidths, tableBackups } = res;
+
+                // Restore cell whiteSpace properties to allow natural wraps inside fixed boxes
+                tableBackups.forEach(b => {
+                    if (b.whiteSpace) {
+                        b.el.style.setProperty('white-space', b.whiteSpace, 'important');
+                    } else {
+                        b.el.style.removeProperty('white-space');
+                    }
+                });
+
+                table.style.setProperty('table-layout', 'fixed', 'important');
+                table.style.setProperty('width', '100%', 'important');
+                table.style.setProperty('min-width', '100%', 'important');
+
+                const totalOptimalWidth = optimalWidths.reduce((sum, w) => sum + w, 0) || 1;
+                cells.forEach((c, idx) => {
+                    if (idx < numCols) {
+                        const pctWidth = ((optimalWidths[idx] / totalOptimalWidth) * 100).toFixed(4) + '%';
+                        c.style.setProperty('width', pctWidth, 'important');
+                        c.style.setProperty('min-width', pctWidth, 'important');
+                    }
+                });
+            });
+
+            this.isProcessing = false;
+        }
+    };
+
     /* --- § 12.5 Table Optimizer (表格微互動與操作增強) --- */
     const TableOptimizer = {
         tableProcessedAttr: 'data-tm-table-processed',
@@ -2432,14 +2606,12 @@
                     for (const col of cols) {
                         let data = (col.innerText || col.textContent || '').trim();
                         data = data.replace(/"/g, '""'); // Escape double quotes
-                        // Only wrap in quotes if necessary or just wrap all for safety
                         rowData.push(`"${data}"`);
                     }
                     csv.push(rowData.join(','));
                 }
                 const csvString = csv.join('\n');
 
-                // 行動端優先嘗試使用 navigator.clipboard 解決 GM_setClipboard 可能的失效問題
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(csvString).then(() => {
                         Utils.showToast('📋 表格已複製 (逗點分隔)');
@@ -2453,38 +2625,360 @@
                 }
             } catch (err) {
                 console.error('[Gemini Ultimate] Copy Table Error:', err);
-                // Fallback
                 GM_setClipboard(tableEl.innerText, 'text');
                 Utils.showToast('📋 表格內容已複製');
             }
         },
 
         processTable(tableContainer) {
-            if (tableContainer.hasAttribute(this.tableProcessedAttr)) return;
-
             const table = tableContainer.querySelector('table');
             if (!table) return;
+
+            const sig = `${table.rows.length}_${table.innerText.length}`;
+            const isProcessed = tableContainer.hasAttribute(this.tableProcessedAttr);
+
+            if (isProcessed) {
+                // 如果內容變更，自動排入佇列進行高效能自適應調寬
+                if (table.dataset.tmTableSig !== sig) {
+                    table.dataset.tmTableSig = sig;
+                    HpcTableAutofitEngine.queueTable(table);
+                }
+                return;
+            }
 
             // 確保父容器為 relative 以放置絕對定位的工具列
             if (getComputedStyle(tableContainer).position === 'static') {
                 tableContainer.style.position = 'relative';
             }
 
+            // 初始化特徵編碼
+            table.dataset.tmTableSig = sig;
+
+            // 🚨 工業級自動化 HPC 欄寬最適化：第一次處理時，直接將其加入 HPC 高效佇列中（靜默，無 Toast 打擾）
+            HpcTableAutofitEngine.queueTable(table);
+
             const toolbar = document.createElement('div');
             toolbar.className = 'tm-table-toolbar';
 
+            // 建立一鍵自調寬度按鈕 (手動點擊依然同步觸發並彈出 Toast 提供回饋)
+            const fitBtn = Components.createButton('tm-btn-fold', '↔️ 自調欄寬', '所有欄位寬度自動最適化', () => this.autoFitAllColumns(table, false));
+            fitBtn.classList.replace('tm-btn-fold', 'tm-btn-mermaid');
+
             // 建立複製按鈕
-            const copyBtn = Components.createButton('tm-btn-fold', '📋', '複製內容', () => this.copyTableText(table));
-            copyBtn.classList.replace('tm-btn-fold', 'tm-btn-mermaid'); // 借用你既有的樣式
+            const copyBtn = Components.createButton('tm-btn-fold', '📋 複製', '複製表格內容為逗點分隔 CSV', () => this.copyTableText(table));
 
             // 建立匯出按鈕
-            const exportBtn = Components.createButton('tm-btn-fold', '📥', '匯出 CSV', () => this.exportToCSV(table));
+            const exportBtn = Components.createButton('tm-btn-fold', '📥 匯出', '匯出為 CSV 檔案', () => this.exportToCSV(table));
 
+            toolbar.appendChild(fitBtn);
             toolbar.appendChild(copyBtn);
             toolbar.appendChild(exportBtn);
             tableContainer.appendChild(toolbar);
 
+            // 載入高保真 Excel-like 欄寬調整與雙擊自適應核心
+            this.makeTableResizable(table);
+
             tableContainer.setAttribute(this.tableProcessedAttr, 'true');
+        },
+
+        autoFitAllColumns(table, isSilent = false) {
+            const firstRow = table.querySelector('tr');
+            if (!firstRow) return;
+            const cells = firstRow.querySelectorAll('th, td');
+            const numCols = cells.length;
+            if (numCols === 0) return;
+
+            const trs = table.querySelectorAll('tr');
+
+            // 儲存所有 cell 的原始寬度與樣式備份
+            const allCellBackups = [];
+            trs.forEach(row => {
+                const rowCells = row.querySelectorAll('th, td');
+                rowCells.forEach(c => {
+                    allCellBackups.push({
+                        el: c,
+                        width: c.style.width,
+                        minWidth: c.style.minWidth,
+                        whiteSpace: c.style.whiteSpace
+                    });
+                });
+            });
+
+            // 臨時釋放版面限制以測量原生的自然寬度
+            table.style.setProperty('table-layout', 'auto', 'important');
+            table.style.setProperty('width', 'max-content', 'important');
+            table.style.setProperty('min-width', 'max-content', 'important');
+
+            trs.forEach(row => {
+                const rowCells = row.querySelectorAll('th, td');
+                rowCells.forEach(c => {
+                    c.style.setProperty('width', 'auto', 'important');
+                    c.style.setProperty('min-width', 'auto', 'important');
+                    c.style.setProperty('white-space', 'nowrap', 'important');
+                });
+            });
+
+            // 測量每一欄的最大 content 寬度
+            const optimalWidths = Array(numCols).fill(40);
+            trs.forEach(row => {
+                const rowCells = row.querySelectorAll('th, td');
+                for (let idx = 0; idx < numCols; idx++) {
+                    if (rowCells[idx]) {
+                        const cellW = rowCells[idx].scrollWidth + 32; // 預留微調內邊界補償
+                        if (cellW > optimalWidths[idx]) {
+                            optimalWidths[idx] = cellW;
+                        }
+                    }
+                }
+            });
+
+            // 商業級最寬限制防呆：防止偶爾出現超長文字把欄位拉出上千像素
+            for (let idx = 0; idx < numCols; idx++) {
+                optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
+            }
+
+            // 恢復所有 Row 節點的原狀態
+            allCellBackups.forEach(b => {
+                b.el.style.width = b.width;
+                b.el.style.minWidth = b.minWidth;
+                b.el.style.whiteSpace = b.whiteSpace;
+            });
+
+            // 轉換為百分比並硬化 layout
+            table.style.setProperty('table-layout', 'fixed', 'important');
+            table.style.setProperty('width', '100%', 'important');
+            table.style.setProperty('min-width', '100%', 'important');
+
+            const totalOptimalWidth = optimalWidths.reduce((sum, w) => sum + w, 0) || 1;
+            cells.forEach((c, idx) => {
+                const pctWidth = ((optimalWidths[idx] / totalOptimalWidth) * 100).toFixed(4) + '%';
+                c.style.setProperty('width', pctWidth, 'important');
+                c.style.setProperty('min-width', pctWidth, 'important');
+            });
+
+            if (!isSilent) {
+                Utils.showToast('📋 所有欄位寬度已智慧自適應最佳化');
+            }
+        },
+
+        makeTableResizable(table) {
+            const firstRow = table.querySelector('tr');
+            if (!firstRow) return;
+
+            const cells = firstRow.querySelectorAll('th, td');
+            cells.forEach((cell, index) => {
+                cell.classList.add('tm-resizable-cell');
+                cell.style.setProperty('position', 'relative', 'important');
+
+                if (cell.querySelector('.tm-col-resizer')) return;
+
+                // 如果是最後一欄，不加 resizer (因為後面沒有下一欄可以互相擠壓)
+                if (index === cells.length - 1) return;
+
+                const resizer = document.createElement('div');
+                resizer.className = 'tm-col-resizer';
+                resizer.dataset.colIndex = index;
+                cell.appendChild(resizer);
+
+                // === 雙擊特製 UX：智慧型 Auto-fit 單一欄寬 ===
+                resizer.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const colIndex = parseInt(resizer.dataset.colIndex, 10);
+                    const colCells = Array.from(cells);
+                    const trs = table.querySelectorAll('tr');
+
+                    const colRows = [];
+                    trs.forEach(r => {
+                        const rCells = r.querySelectorAll('th, td');
+                        if (rCells[colIndex]) colRows.push(rCells[colIndex]);
+                    });
+
+                    const origTableLayout = table.style.tableLayout;
+                    const origTableWidth = table.style.width;
+                    const origTableMinWidth = table.style.minWidth;
+
+                    const rowBackups = colRows.map(c => ({
+                        el: c,
+                        width: c.style.width,
+                        minWidth: c.style.minWidth,
+                        whiteSpace: c.style.whiteSpace
+                    }));
+
+                    table.style.setProperty('table-layout', 'auto', 'important');
+                    table.style.setProperty('width', 'max-content', 'important');
+                    table.style.setProperty('min-width', 'max-content', 'important');
+
+                    colRows.forEach(c => {
+                        c.style.setProperty('width', 'auto', 'important');
+                        c.style.setProperty('min-width', 'auto', 'important');
+                        c.style.setProperty('white-space', 'nowrap', 'important');
+                    });
+
+                    let optimalWidth = 50; 
+                    colRows.forEach(c => {
+                        const cellW = c.scrollWidth + 24;
+                        if (cellW > optimalWidth) optimalWidth = cellW;
+                    });
+
+                    optimalWidth = Math.min(500, optimalWidth);
+
+                    rowBackups.forEach(backup => {
+                        backup.el.style.width = backup.width;
+                        backup.el.style.minWidth = backup.minWidth;
+                        backup.el.style.whiteSpace = backup.whiteSpace;
+                    });
+
+                    table.style.setProperty('table-layout', 'fixed', 'important');
+
+                    const finishedWidths = colCells.map(c => c.getBoundingClientRect().width);
+                    finishedWidths[colIndex] = optimalWidth;
+
+                    const tableSumWidth = finishedWidths.reduce((sum, w) => sum + w, 0) || 1;
+                    colCells.forEach((c, idx) => {
+                        const pctWidth = ((finishedWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
+                        c.style.setProperty('width', pctWidth, 'important');
+                        c.style.setProperty('min-width', pctWidth, 'important');
+                    });
+
+                    table.style.setProperty('width', '100%', 'important');
+                    table.style.setProperty('min-width', '100%', 'important');
+
+                    Utils.showToast('📋 欄位寬度已智慧最適化');
+                });
+
+                // === 頂級滑鼠拖曳 UX：Real-time 橫向動態調整 ===
+                resizer.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    resizer.classList.add('tm-resizing');
+
+                    const colIndex = parseInt(resizer.dataset.colIndex, 10);
+                    const colCells = Array.from(cells);
+                    
+                    const startWidths = colCells.map(c => c.getBoundingClientRect().width);
+                    table.style.setProperty('table-layout', 'fixed', 'important');
+
+                    const startX = e.clientX;
+                    const startWidth = startWidths[colIndex];
+                    const nextStartWidth = startWidths[colIndex + 1];
+
+                    document.body.style.setProperty('cursor', 'col-resize', 'important');
+                    document.body.style.setProperty('user-select', 'none', 'important');
+
+                    const onMouseMove = (moveEvent) => {
+                        const dx = moveEvent.clientX - startX;
+                        
+                        let targetWidth = startWidth + dx;
+                        let targetNextWidth = nextStartWidth - dx;
+
+                        const MIN_COL_WIDTH = 35;
+                        if (targetWidth < MIN_COL_WIDTH) {
+                            const diff = MIN_COL_WIDTH - targetWidth;
+                            targetWidth = MIN_COL_WIDTH;
+                            targetNextWidth -= diff;
+                        }
+                        if (targetNextWidth < MIN_COL_WIDTH) {
+                            const diff = MIN_COL_WIDTH - targetNextWidth;
+                            targetNextWidth = MIN_COL_WIDTH;
+                            targetWidth -= diff;
+                        }
+
+                        const currentWidths = [...startWidths];
+                        currentWidths[colIndex] = targetWidth;
+                        currentWidths[colIndex + 1] = targetNextWidth;
+
+                        const tableSumWidth = currentWidths.reduce((sum, w) => sum + w, 0) || 1;
+
+                        colCells.forEach((c, idx) => {
+                            const pctWidth = ((currentWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
+                            c.style.setProperty('width', pctWidth, 'important');
+                            c.style.setProperty('min-width', pctWidth, 'important');
+                        });
+
+                        table.style.setProperty('width', '100%', 'important');
+                        table.style.setProperty('min-width', '100%', 'important');
+                    };
+
+                    const onMouseUp = () => {
+                        resizer.classList.remove('tm-resizing');
+                        document.body.style.removeProperty('cursor');
+                        document.body.style.removeProperty('user-select');
+
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    };
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+
+                // === 平板與移動端 Touch 支援 ===
+                resizer.addEventListener('touchstart', (e) => {
+                    if (e.touches.length !== 1) return;
+                    const touch = e.touches[0];
+
+                    resizer.classList.add('tm-resizing');
+
+                    const colIndex = parseInt(resizer.dataset.colIndex, 10);
+                    const colCells = Array.from(cells);
+                    const startWidths = colCells.map(c => c.getBoundingClientRect().width);
+
+                    table.style.setProperty('table-layout', 'fixed', 'important');
+
+                    const startX = touch.clientX;
+                    const startWidth = startWidths[colIndex];
+                    const nextStartWidth = startWidths[colIndex + 1];
+
+                    const onTouchMove = (moveEvent) => {
+                        if (moveEvent.touches.length !== 1) return;
+                        const currentTouch = moveEvent.touches[0];
+                        const dx = currentTouch.clientX - startX;
+
+                        let targetWidth = startWidth + dx;
+                        let targetNextWidth = nextStartWidth - dx;
+
+                        const MIN_COL_WIDTH = 35;
+                        if (targetWidth < MIN_COL_WIDTH) {
+                            const diff = MIN_COL_WIDTH - targetWidth;
+                            targetWidth = MIN_COL_WIDTH;
+                            targetNextWidth -= diff;
+                        }
+                        if (targetNextWidth < MIN_COL_WIDTH) {
+                            const diff = MIN_COL_WIDTH - targetNextWidth;
+                            targetNextWidth = MIN_COL_WIDTH;
+                            targetWidth -= diff;
+                        }
+
+                        const currentWidths = [...startWidths];
+                        currentWidths[colIndex] = targetWidth;
+                        currentWidths[colIndex + 1] = targetNextWidth;
+
+                        const tableSumWidth = currentWidths.reduce((sum, w) => sum + w, 0) || 1;
+
+                        colCells.forEach((c, idx) => {
+                            const pctWidth = ((currentWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
+                            c.style.setProperty('width', pctWidth, 'important');
+                            c.style.setProperty('min-width', pctWidth, 'important');
+                        });
+
+                        table.style.setProperty('width', '100%', 'important');
+                        table.style.setProperty('min-width', '100%', 'important');
+                    };
+
+                    const onTouchEnd = () => {
+                        resizer.classList.remove('tm-resizing');
+                        document.removeEventListener('touchmove', onTouchMove);
+                        document.removeEventListener('touchend', onTouchEnd);
+                    };
+
+                    document.addEventListener('touchmove', onTouchMove, { passive: true });
+                    document.addEventListener('touchend', onTouchEnd);
+                }, { passive: true });
+            });
         },
 
         scanTables() {
