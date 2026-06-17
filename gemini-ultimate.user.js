@@ -279,12 +279,12 @@
     /* ── 表格（通用：工業級修復 Hover 重繪 Bug / 格線長駐） ── */
     /* 1. 父容器不允許出現橫向卷軸，防擠壓並強制換行 */
     .table-block, .tm-table-wrapper {
-        overflow-x: hidden !important;
+        overflow: hidden !important; /* 核心修正：將 overflow-x 升級為 overflow，防背景色蓋掉外邊框 rounded corners */
         width: 100% !important; max-width: 100% !important;
         box-sizing: border-box !important;
         border-radius: 0.5rem;
         box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.3);
-        border: 2px solid var(--border-color) !important;
+        border: 5px solid var(--border-color) !important;
         margin: var(--spacing-unit) 0 !important;
         background: var(--bg-primary);
         position: relative;
@@ -305,8 +305,8 @@
     .model-response-text th, .model-response-text td,
     markdown-renderer th, markdown-renderer td, th, td {
         border: none !important;
-        border-bottom: 1px solid var(--border-color) !important;
-        border-right: 1px solid var(--border-color) !important;
+        border-bottom: 3px solid var(--border-color) !important;
+        border-right: 3px solid var(--border-color) !important;
         padding: 0.75rem 1rem !important;
         font-family: var(--font-body) !important;
         font-size: var(--base-font-size) !important;
@@ -319,11 +319,32 @@
     th:last-child, td:last-child { border-right: none !important; }
     tr:last-child td { border-bottom: none !important; }
 
+    /* 徹底清除表格下緣無用、佔位且遮擋邊界之 Gemini 官方原生滾動輔助導航欄、滾動按鈕、三點選單導航區 */
+    linear-scroll-assistant,
+    .linear-scroll-assistant,
+    .scroll-assistant,
+    .table-navigator,
+    .scroller-button,
+    button[aria-label*="scroll"],
+    div[class*="scroll-assistant"],
+    div[class*="table-navigator"] {
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
     th {
         background: linear-gradient(135deg, #3c3836 0%, #282828 100%) !important;
         color: var(--accent-green) !important; font-weight: 700 !important;
         text-transform: uppercase; letter-spacing: 0.05em;
-        border-bottom: 2px solid var(--accent-green) !important;
+        border-bottom: 5px solid var(--accent-green) !important;
         position: sticky; top: 0; z-index: 2;
     }
     td { background: var(--bg-primary) !important; color: var(--text-secondary) !important; }
@@ -2661,14 +2682,14 @@
             toolbar.className = 'tm-table-toolbar';
 
             // 建立一鍵自調寬度按鈕 (手動點擊依然同步觸發並彈出 Toast 提供回饋)
-            const fitBtn = Components.createButton('tm-btn-fold', '↔️ 自調欄寬', '所有欄位寬度自動最適化', () => this.autoFitAllColumns(table, false));
+            const fitBtn = Components.createButton('tm-btn-fold', '↔️', '自調欄寬', () => this.autoFitAllColumns(table, false));
             fitBtn.classList.replace('tm-btn-fold', 'tm-btn-mermaid');
 
             // 建立複製按鈕
-            const copyBtn = Components.createButton('tm-btn-fold', '📋 複製', '複製表格內容為逗點分隔 CSV', () => this.copyTableText(table));
+            const copyBtn = Components.createButton('tm-btn-fold', '📋', '複製CSV', () => this.copyTableText(table));
 
             // 建立匯出按鈕
-            const exportBtn = Components.createButton('tm-btn-fold', '📥 匯出', '匯出為 CSV 檔案', () => this.exportToCSV(table));
+            const exportBtn = Components.createButton('tm-btn-fold', '📥', '匯出CSV', () => this.exportToCSV(table));
 
             toolbar.appendChild(fitBtn);
             toolbar.appendChild(copyBtn);
@@ -2778,6 +2799,7 @@
                 const resizer = document.createElement('div');
                 resizer.className = 'tm-col-resizer';
                 resizer.dataset.colIndex = index;
+                resizer.title = '雙擊此處自動最適化此欄寬度，或手動拖曳調整';
                 cell.appendChild(resizer);
 
                 // === 雙擊特製 UX：智慧型 Auto-fit 單一欄寬 ===
@@ -2789,55 +2811,73 @@
                     const colCells = Array.from(cells);
                     const trs = table.querySelectorAll('tr');
 
-                    const colRows = [];
-                    trs.forEach(r => {
-                        const rCells = r.querySelectorAll('th, td');
-                        if (rCells[colIndex]) colRows.push(rCells[colIndex]);
+                    // 1. 為了保留其他欄位的拉伸狀態，我們在發生重排前精準讀取各欄位原本的實體寬度
+                    const origWidths = colCells.map(c => c.getBoundingClientRect().width || 100);
+
+                    // 收集這張桌子中所有 tr 裡的第一代 cell 進行全面的樣式備份
+                    const allCellBackups = [];
+                    trs.forEach(row => {
+                        const rowCells = row.querySelectorAll('th, td');
+                        rowCells.forEach(c => {
+                            allCellBackups.push({
+                                el: c,
+                                width: c.style.width,
+                                minWidth: c.style.minWidth,
+                                whiteSpace: c.style.whiteSpace
+                            });
+                        });
                     });
 
-                    const origTableLayout = table.style.tableLayout;
-                    const origTableWidth = table.style.width;
-                    const origTableMinWidth = table.style.minWidth;
-
-                    const rowBackups = colRows.map(c => ({
-                        el: c,
-                        width: c.style.width,
-                        minWidth: c.style.minWidth,
-                        whiteSpace: c.style.whiteSpace
-                    }));
-
+                    // 2. 解放整張 Table 來進行精確的自然尺寸測量
                     table.style.setProperty('table-layout', 'auto', 'important');
                     table.style.setProperty('width', 'max-content', 'important');
                     table.style.setProperty('min-width', 'max-content', 'important');
 
-                    colRows.forEach(c => {
-                        c.style.setProperty('width', 'auto', 'important');
-                        c.style.setProperty('min-width', 'auto', 'important');
-                        c.style.setProperty('white-space', 'nowrap', 'important');
+                    trs.forEach(row => {
+                        const rowCells = row.querySelectorAll('th, td');
+                        rowCells.forEach(c => {
+                            c.style.setProperty('width', 'auto', 'important');
+                            c.style.setProperty('min-width', 'auto', 'important');
+                        });
                     });
 
-                    let optimalWidth = 50; 
+                    // 3. 將目前雙擊的這欄單元格全部設為 white-space: nowrap，使其自然完全撐開，不被壓縮
+                    const colRows = [];
+                    trs.forEach(r => {
+                        const rCells = r.querySelectorAll('th, td');
+                        const targetCell = rCells[colIndex];
+                        if (targetCell) {
+                            colRows.push(targetCell);
+                            targetCell.style.setProperty('white-space', 'nowrap', 'important');
+                        }
+                    });
+
+                    // 4. 計算此欄所有單元格中，最大且最真實的 content 自然寬度
+                    let optimalWidth = 50;
                     colRows.forEach(c => {
-                        const cellW = c.scrollWidth + 24;
+                        const cellW = Math.max(c.scrollWidth, c.getBoundingClientRect().width) + 32; // 超精確內距保護
                         if (cellW > optimalWidth) optimalWidth = cellW;
                     });
 
-                    optimalWidth = Math.min(500, optimalWidth);
+                    // 防呆限制：最窄 45px，最寬 500px，防止超長資料拉扁整張表格
+                    optimalWidth = Math.min(500, Math.max(45, optimalWidth));
 
-                    rowBackups.forEach(backup => {
-                        backup.el.style.width = backup.width;
-                        backup.el.style.minWidth = backup.minWidth;
-                        backup.el.style.whiteSpace = backup.whiteSpace;
+                    // 5. 測量完成後，立刻無縫還原這張桌子所有 cell 的原始寬度與折行樣式
+                    allCellBackups.forEach(b => {
+                        b.el.style.width = b.width;
+                        b.el.style.minWidth = b.minWidth;
+                        b.el.style.whiteSpace = b.whiteSpace;
                     });
 
+                    // 6. 硬化佈局為 O(1) Fixed，以覆蓋後的寬度比例鎖定為 100% 總寬百分比
                     table.style.setProperty('table-layout', 'fixed', 'important');
 
-                    const finishedWidths = colCells.map(c => c.getBoundingClientRect().width);
-                    finishedWidths[colIndex] = optimalWidth;
+                    // 覆蓋雙擊欄位的最優像素寬度
+                    origWidths[colIndex] = optimalWidth;
 
-                    const tableSumWidth = finishedWidths.reduce((sum, w) => sum + w, 0) || 1;
+                    const tableSumWidth = origWidths.reduce((sum, w) => sum + w, 0) || 1;
                     colCells.forEach((c, idx) => {
-                        const pctWidth = ((finishedWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
+                        const pctWidth = ((origWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
                         c.style.setProperty('width', pctWidth, 'important');
                         c.style.setProperty('min-width', pctWidth, 'important');
                     });
@@ -2858,7 +2898,7 @@
 
                     const colIndex = parseInt(resizer.dataset.colIndex, 10);
                     const colCells = Array.from(cells);
-                    
+
                     const startWidths = colCells.map(c => c.getBoundingClientRect().width);
                     table.style.setProperty('table-layout', 'fixed', 'important');
 
@@ -2871,7 +2911,7 @@
 
                     const onMouseMove = (moveEvent) => {
                         const dx = moveEvent.clientX - startX;
-                        
+
                         let targetWidth = startWidth + dx;
                         let targetNextWidth = nextStartWidth - dx;
 
