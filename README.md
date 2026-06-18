@@ -8,16 +8,15 @@ Gemini Ultimate is an enterprise-grade presentation layer and interactive render
 
 For users who have never interacted with this codebase, you can think of this tool as an automated, client-side visual interceptor. Once installed via Tampermonkey or Violentmonkey, it hooks into the DOM rendering cycle seamlessly.
 
-Below is an abstract behavioral representation (BDD Model) demonstrating how the script handles unstructured user communications and raw Markdown code blocks:
+Below is an abstract behavioral representation (BDD Model) demonstrating how the script processes unstructured user communications and code blocks:
 
 ```mermaid
 graph LR
-    RawOutput["Raw AI Text / Markdown Block"] --> Interceptor["Runtime Injection Interceptor"]
-    Interceptor --> Action1["Inject Overlay Control Buttons"]
-    Interceptor --> Action2["Transform Unstructured Content"]
-    Action1 --> RenderedUI["Interactive Visual Studio UI Workspace"]
-    Action2 --> RenderedUI
-
+    Given["Given: Raw AI Output Stream"] --> Interceptor["Runtime Injection Interceptor"]
+    Interceptor --> Action1["When: Match specific data signatures"]
+    Action1 --> Outcome1["Then: Transform into Interactive Workspace"]
+    Interceptor --> Action2["When: Detect user interactions"]
+    Action2 --> Outcome2["Then: Trigger UI Tools & Micro-interactions"]
 ```
 
 ---
@@ -28,12 +27,15 @@ To quickly build a mental model for developers new to this codebase, the system 
 
 | Target Component | Given (User Context) | When (Action/Trigger) | Then (Expected Outcome) | Industrial Highlight |
 | --- | --- | --- | --- | --- |
-| **Interactive HTML Workspace** | A raw HTML/JS text chunk is rendered in a chat bubble. | The developer clicks the `▶️ Render Web` button. | A fully sandboxed `<iframe>` materializes, loading the app via an isolated Blob URL. | Bypasses strict host CSP regulations deterministically without server-side relays. |
-| **Mermaid Diagram Studio** | A structured flowchart, sequence diagram, or mindmap block appears. | The developer clicks `🎨 Interactive Diagram`. | The raw script compiles into a vector canvas supporting matrix translation (pan, zoom, pinch). | Includes a single-click serialization bridge syncing data directly to `mermaid.live`. |
-| **RFC 4180 Datatable Engine** | A continuous stream of comma-separated (CSV) plain text is output. | The developer clicks the `📊 Data Table` toggle button. | A deterministic, zero-dependency engine instantly processes cells into a tabular grid. | Complete text-wrapping defense prevents overflow rendering bugs on small displays. |
-| **Markdown Preview Engine** | A code container tagged with `md` or `markdown` is identified. | The developer activates `📝 MD Preview`. | An asynchronous module lifecycle fallback imports `Marked.js` to render rich typography. | Safe DOM transformation using trusted script injection routines. |
-| **Data Ink Optimization** | A massive structured dataset table spans across the vertical viewport. | The developer scrolls down or hovers over specific cells. | Table headers lock to the top via frosted-glass layers, and row/column crosshairs illuminate. | Eradicates multi-axis scanning drift on ultra-wide desktop monitors. |
-| **Smart Interface Capsule** | The interface container is left idling without text inputs. | The operator scrolls down or swipes away from the input frame. | The input area smoothly condenses down into a high-visibility, rounded mobile capsule. | Maximizes visual real estate; automatically re-expands upon mouse-down or panel focus. |
+| **Interactive Web Workspace** | A raw HTML/JS/CSS text chunk is rendered in a chat bubble. | The developer clicks the `▶️ Render Web` button. | A full `<iframe>` sandbox materializes, loading the app via an isolated Blob URL. | Bypasses strict host CSP regulations deterministically without server-side relays. |
+| **Mermaid Diagram Studio** | A structured flowchart, sequence diagram, or mindmap block appears. | The developer clicks `🎨 Interactive Diagram`. | The raw script compiles into a vector canvas supporting matrix translation. | Includes robust gesture controls (pan, zoom, pinch) and a serialization bridge to `mermaid.live`. |
+| **AI Image Generator** | An image generation payload or query is detected. | The developer triggers the image generation command. | An asynchronous API call dynamically injects a high-res image into the chat view. | Zero-configuration Pollinations API integration leveraging background requests. |
+| **Radial Context Menu** | The operator highlights text or triggers the interactive menu. | The user presses the trigger shortcut or action. | A circular, gesture-friendly wheel menu appears offering smart contextual tools. | Frictionless UX inspired by high-end gaming and professional CAD software. |
+| **Private GEMs Menu** | The user requires consistent, fine-tuned expert AI personas. | The user selects a specific role from the custom GEMs extension menu. | An engineered payload prompt is instantly injected into the input container. | Eliminates prompt switching friction; centrally managed directly in the presentation layer. |
+| **RFC 4180 Datatable Engine** | A continuous stream of tabular or CSV plain text is output. | The developer clicks the `📊 Data Table` toggle button. | A deterministic engine instantly processes cells into a scalable interactive grid. | Includes draggable column resizers (Excel-like) and text-wrap overflow defenses. |
+| **Data Ink Optimization** | A massive structured dataset table spans across the viewport. | The developer scrolls down or hovers over specific data cells. | Table headers lock to the top via frosted-glass, and row/column crosshairs illuminate. | Eradicates multi-axis scanning drift on ultra-wide desktop monitors. |
+| **Smart Interface Capsule** | The interface container is left idling without text inputs. | The operator scrolls down or clicks entirely outside the input frame. | The input area smoothly condenses down into a high-visibility, rounded mobile capsule. | Maximizes screen real estate; automatically re-expands with precise physics on focus. |
+| **State & Virtual Routing** | The DOM navigates through heavy repaints or session reloads. | The user opens previously modified interactive views or content blocks. | Skeleton loaders mask the UI delay, and previous expanded/collapsed states are restored. | Implements a robust `GM_getValue` caching layer with timeline state expirations. |
 
 ---
 
@@ -42,13 +44,24 @@ To quickly build a mental model for developers new to this codebase, the system 
 When a payload is injected into the interface, data flows linearly through a decoupled transformation pipeline:
 
 ```mermaid
-graph LR
-    StreamInput["1. Intercept Raw Stream Element"] --> Verification{"2. Match Content Signatures<br/>(HTML, CSV, Mermaid, MD?)"}
-    Verification -->|Match Found| Pipeline["3. Trigger Specialized Renderer Strategy"]
-    Verification -->|No Match| Fallback["4. Render Standard Gruvbox Theme"]
-    Pipeline --> TargetBlob["5. Encapsulate inside Dynamic Blob URL"]
-    TargetBlob --> ShadowDOM["6. Inject non-invasive Overlay to Viewport"]
-
+graph TD
+    Stream[1. Intercept Mutation Stream] --> DOM{2. DOM Observer Engine}
+    DOM --> Matcher{3. Signature Matcher}
+    
+    Matcher -->|HTML/JS| Web[Interactive Web Builder]
+    Matcher -->|Mermaid| Vis[Mermaid Vector Renderer]
+    Matcher -->|CSV/Markdown| Doc[Document & Table Engine]
+    Matcher -->|Context Payload| Action[Radial & Image Engines]
+    
+    Web --> Blob[Encapsulate in Dynamic Blob URL]
+    Vis --> Canvas[Matrix Translation Canvas]
+    Doc --> Virtual[Virtual Scroll / Resizable Formats]
+    Action --> Overlay[Shadow DOM / Viewport Overlay]
+    
+    Blob --> Render[Industrial UI Presentation]
+    Canvas --> Render
+    Virtual --> Render
+    Overlay --> Render
 ```
 
 ---
@@ -57,27 +70,26 @@ graph LR
 
 To navigate the codebase efficiently without deep prior exposure, refer to this structural directory layout mapping features to physical code locations:
 
-```
+```text
 ├── .gitignore              # Dependency and environment asset filters
 ├── package.json            # Runtime tooling, script configurations, and dev dependencies
 ├── tsconfig.json           # Type resolution boundaries and compilation targets
-├── vite.config.ts          # Environment variables mapping (GEMINI_API_KEY resolution rules)
+├── vite.config.ts          # Environment variables mapping (API key resolution rules)
 └── gemini-ultimate.user.js # Unified core entry point (Meticulously isolated via IIFE)
-    ├── § 0 Base Config     # Global thresholds, animation bounds, and CDN configurations
+    ├── § 0 Base Config     # Global thresholds, custom GEMs configurations, animation bounds
     ├── § 1 Trusted Types   # Security layer guarding against client-side XSS vectors
     ├── § 2 CSS Injection   # Industrial Gruvbox & VS2022 Hybrid style compiler
     ├── § 3 Network Wrapper # Asynchronous resource management pipelines with automatic retries
-    ├── § 4-6 Mermaid Core  # Standalone HTML builders and gesture translation mechanics
-    ├── § 7-9 Core Strategy # Multi-Renderer pipeline state machine (HTML, Markdown, CSV)
-    ├── § 10-11 Core Utils  # Radial menu bindings, toast messaging, and state persistence rules
-    └── § 12-13 Observers   # Debounced MutationObserver scanning thread-blocking mitigations
-
+    ├── § 4-6 Mermaid Core  # Standalone HTML builders, canvas matrix, and gesture translation
+    ├── § 7-8 Core Tools    # Interactive HTML Blob rendering and Pollinations Image Generator
+    ├── § 9-11 UI Elements  # DOM injection for buttons, Radial Menu, Toast configs, and GEMs 
+    └── § 12-13 Observers   # Debounced MutationObserver and Shadow DOM scanning optimizations
 ```
 
 ---
 
 ## ⚙️ Technical Assembly & Deployment Requirements
 
-* **Host Engine Environment**: Tampermonkey[https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=zh-TW&pli=1] / Violentmonkey Engine (Desktop & Mobile)
+* **Host Engine Environment**: Tampermonkey / Violentmonkey Engine (Desktop & Mobile)
 * **Execution Boundary Priority**: Registered at `document-start`
 * **External Network Connectivity Allowlist**: `cdn.jsdelivr.net`, `unpkg.com`, `cdnjs.cloudflare.com`, `esm.sh`, `image.pollinations.ai`

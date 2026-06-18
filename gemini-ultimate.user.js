@@ -3656,7 +3656,7 @@ applyGem(promptText) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        /* Chrome 額外延遲：DOM 完全穩定後再啟動 */
+        /* Chrome 額外延遲：DOM 完全穩定後再啟動 */ 
         CONFIG.IS_CHROME ? setTimeout(init, 100) : init();
     }
 
