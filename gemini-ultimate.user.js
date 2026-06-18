@@ -745,39 +745,52 @@
         left: auto !important;
     }
 
-    .gemini-ui-collapsed {
-        max-width: 140px !important;
-        height: 48px !important;
-        min-height: 48px !important;
-        padding: 0 !important;
+.gemini-ui-collapsed {
+        width: auto !important;
+        min-width: 150px !important;
+        max-width: 250px !important;
+        height: 35px !important;
+        min-height: 35px !important;
+        padding: 0px !important;
         margin: 0 !important;
         opacity: 0.95;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.25) !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
         cursor: pointer !important;
-        border-radius: 40px !important;
-        background: var(--bg-secondary) !important;
-        border: 1px solid var(--vs-border) !important;
+        border-radius: 24px !important;
+        background: rgba(30, 30, 46, 0.8) !important; /* 工業級半透明毛玻璃深色背景 */
+        border: 2px solid var(--accent-green) !important; /* 綠色導引強調邊框 */
         overflow: hidden !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 
-        /* 極度置底與置中：脫離文件流，解鎖上方空間 */
         position: fixed !important;
-        bottom: 24px !important;
+        bottom: 17px !important; /* 原始 24px 下移 5px 至 19px */
         left: 50% !important;
         transform: translateX(-50%) !important;
         backdrop-filter: blur(12px) !important;
+        z-index: 9999 !important; /* 確保浮於所有視窗與元素之上 */
+    }
+
+    /* 使用虛擬元素 ::after 在 CSS 中植入 "Chat" 文字 */
+    .gemini-ui-collapsed::after {
+        content: "💬 Chat";
+        color: #ffffff; /* 預設白色，可依需求調整 */
+        font-size: 14px; /* 預設字型大小，可依需求調整 */
+        font-weight: 500;
     }
 
     .gemini-ui-collapsed::before {
-        content: '✍️ Chat';
-        font-family: var(--font-body);
-        font-weight: 600;
-        font-size: 15px;
-        letter-spacing: 0.5px;
-        color: var(--text-primary);
-        pointer-events: none;
+        content: '💬 Chat' !important;
+        font-family: var(--font-body), system-ui, -apple-system, sans-serif !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+        letter-spacing: 0.5px !important;
+        color: #ffffff !important; /* 高對比明亮文字 */
+        text-shadow: 0 1px 2px rgba(0,0,0,0.6) !important;
+        pointer-events: none !important;
+        white-space: nowrap !important;
     }
 
     /* Hide all actual children inside the capsule */
@@ -789,11 +802,11 @@
     }
 
     .gemini-ui-collapsed:hover {
-        opacity: 1;
-        max-width: 155px !important;
-        box-shadow: 0 12px 36px rgba(0,0,0,0.35) !important;
+        opacity: 1 !important;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 12px rgba(184, 187, 38, 0.5) !important; /* 懸停時流光 Aura 效果 */
         transform: translateX(-50%) translateY(-2px) !important;
-        background: var(--bg-tertiary) !important;
+        background: rgba(45, 45, 68, 0.95) !important;
+        border-color: var(--accent-yellow) !important; /* 懸停時邊框轉換黃色 */
     }
 
     /* === v6.0 Industrial UX: Micro-interactions & Animations === */
@@ -3060,6 +3073,19 @@
             this.hasBoundGlobals = false;
         }
 
+        // 工業級反應式檢測：判斷當前是否處於無對話紀錄之首頁狀態
+        isOnHomepageWithoutChat() {
+            const pathname = window.location.pathname;
+            // 1. URL 檢測：首頁網址不應具有對話 ID 特徵 (/app/c/)
+            const hasChatInUrl = pathname.includes('/app/c/');
+
+            // 2. DOM 檢測：尋找是否存在任何對話區、Q&A 單元以及對話串標籤
+            const hasChatInDom = !!document.querySelector('.model-response-text, .user-query, .conversation, chat-history, [class*="message-row"]');
+
+            // 只有兩者皆為 false，才是真正的純淨無紀錄首頁
+            return !hasChatInUrl && !hasChatInDom;
+        }
+
         init() {
             this.findTarget();
 
@@ -3073,6 +3099,11 @@
 
                 if (!this.targetElement) {
                     this.findTarget();
+                }
+
+                // 工業級微創修正：若在首頁無任何對話紀錄時，且目前已被縮小為膠囊，立刻強制還原展開
+                if (this.targetElement && !this.isExpanded && this.isOnHomepageWithoutChat()) {
+                    this.expand();
                 }
             });
             obs.observe(document.body, { childList: true, subtree: true });
@@ -3216,6 +3247,9 @@
         }
 
         collapse() {
+            // 工業級阻斷：在首頁且無對話紀錄下，絕對禁止進行聊天視窗膠囊化
+            if (this.isOnHomepageWithoutChat()) return;
+
             // Check if there is text in the input
             const inputEl = this.targetElement.querySelector('.ql-editor');
             if (inputEl && inputEl.textContent.trim().length > 0) return; // do not collapse if it has text
