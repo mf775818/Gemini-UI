@@ -3107,7 +3107,7 @@
             const isGlobalScrollIntent = (target) => {
                 if (!target || target === window || target === document || target === document.body) return true;
                 // 若使用者正在與互動區域 (表格、圖表、輸入框等) 進行局部滾動，應予過濾
-                const isLocalUI = target.closest && target.closest('.tm-table-container, .tm-mermaid-container, iframe, pre, code, [contenteditable="true"], .q-box');
+                const isLocalUI = target.closest && target.closest('.tm-col-resizer, .tm-resizable-cell, .tm-table-container, .tm-mermaid-container, iframe, pre, code, [contenteditable="true"], .q-box');
                 return !isLocalUI;
             };
 
@@ -3132,16 +3132,11 @@
 
                 // 移動端 UX 優化：
                 // 1. 若為純水平滑動 (如手勢返回) -> 不干擾
-                // 2. 垂直滑動超過 15px -> 視為明確的閱讀/滾動意圖，才觸發縮小
+                // 2. 為了防止 iOS 拖曳或滑動時引發鍵盤收合與捲軸亂跳，封鎖主動的 blur 動作與行動端的強制收合。
                 if (deltaY > 15 && deltaY > deltaX) {
-                    // 若在觸控滑動時發現鍵盤是展開的 (通常 document.activeElement 仍為 input)
-                    // 此時若使用者滑動對話，我們應該強制 Blur 解面盤，並縮小膠囊，給予最佳的沉浸式閱讀體驗
-                    // 工業級防呆：主動釋放焦點
-                    if (document.activeElement &&
-                        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
-                        document.activeElement.blur();
-                    }
-                    checkScrollIntent();
+                    // Mobile Scroll Intent detected
+                    // 為了滿足商業級 UX 要求：如果用戶不想隨意更動捲軸，我們直接封鎖主動的 blur 動作，並防止強制收合。
+                    // 因此這裡不再呼叫 document.activeElement.blur() 也不再呼叫 checkScrollIntent() 
                 }
             };
 
@@ -3150,14 +3145,17 @@
                 // 電腦端 UX 優化：過濾局部 UI 工具操作，僅響應主體滾動
                 if (!isGlobalScrollIntent(e.target)) return;
                 
-                if (Math.abs(e.deltaY) > 5) checkScrollIntent();
+                // 為了防止桌面端與行動端的捲軸隨意跳動與版面錯亂，依據商業級 UX 需求關閉主動收合
+                // if (Math.abs(e.deltaY) > 5) checkScrollIntent();
             };
 
             const handleScroll = (e) => {
                 if (!this.targetElement) return;
                 // 原生 scroll 捕捉：防禦來自不可預期局部容器的氣泡事件
                 if (e.target && !isGlobalScrollIntent(e.target)) return;
-                checkScrollIntent();
+                
+                // 依據使用者需求，封鎖 iOS 端的捲軸亂跳跳轉邏輯，不再進行捲軸操作時強制收合 UI
+                // checkScrollIntent();
             };
 
             // 使用 capture: true 強制在事件傳遞的最高層攔截 (無視子元素 stopPropagation)
@@ -3190,11 +3188,8 @@
             this._mouseDownHandler = () => {
                 if (!this.isExpanded) {
                     this.expand();
-                    // 強制獲得焦點以防立即縮小
-                    setTimeout(() => {
-                        const input = this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea');
-                        if (input) input.focus();
-                    }, 50);
+                    // 為了封鎖 iOS 端的強制跳轉邏輯，依據商業級 UX 要求，不再使用 JS 強制 focus()
+                    // 讓使用者自行點擊輸入框來觸發原生 focus 與鍵盤，避免畫面不預期跳轉
                 }
             };
 
@@ -3371,7 +3366,8 @@ applyGem(promptText) {
             const editor = document.querySelector('.ql-editor');
             if (!editor) return;
 
-            editor.focus();
+            // 依據商業級 UX 需求封鎖自動 focus，防止 iOS 觸發軟鍵盤導致劇烈跳動
+            // editor.focus({ preventScroll: true });
 
             // === HPC & 高可靠度：精確選區 `@` 標記清除狀態機 ===
             const sel = window.getSelection();
