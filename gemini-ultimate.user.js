@@ -650,6 +650,7 @@
         cursor: col-resize !important;
         z-index: 100 !important;
         user-select: none !important;
+        touch-action: none !important; /* 行動端防止拖曳時觸發預設全域水平滾動 */
         transition: background 0.15s ease-in-out;
         background: transparent;
     }
@@ -1519,6 +1520,7 @@
                 const pointers = new Map();
                 
                 container.addEventListener('pointerdown', function(e) {
+                    if (e.pointerType === 'touch' || e.pointerType === 'pen') { e.preventDefault(); e.stopPropagation(); }
                     pointers.set(e.pointerId, e);
                     container.setPointerCapture(e.pointerId);
                     
@@ -1537,6 +1539,7 @@
                 });
 
                 container.addEventListener('pointermove', function(e) {
+                    if (e.pointerType === 'touch' || e.pointerType === 'pen') { e.preventDefault(); }
                     if (!pointers.has(e.pointerId)) return;
                     pointers.set(e.pointerId, e);
                     
@@ -1949,6 +1952,7 @@
                         const iframe = document.createElement('iframe');
                         iframe.className = 'gemini-preview-iframe';
                         iframe.setAttribute('sandbox', 'allow-scripts allow-popups allow-modals');
+                        iframe.tabIndex = -1; // 防止自動聚焦導致滾動跳躍
 
                         previewContainer.appendChild(controls);
                         previewContainer.appendChild(iframe);
@@ -1964,6 +1968,7 @@
                         previewDiv.dataset.blobUrl = result;
 
                         button.innerHTML = `❌ 關閉預覽`;
+                        button.blur(); // 釋放焦點防止 iOS 亂跳
                     }
                     button.dataset.mode = 'preview';
                 } catch (error) {
