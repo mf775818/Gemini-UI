@@ -1833,17 +1833,26 @@
         safeSetHTML(placeholder, '<span class="gemini-loading-spinner"></span>載入圖片...');
         node.parentNode.replaceChild(placeholder, node);
 
-        try {
-            const imageBlob = await fetchResource(imageUrl, 'GET', null, 'blob');
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(imageBlob);
-            img.alt = 'AI 圖片';
-            img.style.cssText = 'max-width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);';
-            img.onload = () => placeholder.parentNode.replaceChild(img, placeholder);
-        } catch (error) {
-            placeholder.textContent = `❌ 載入失敗: ${error.message}`;
-            placeholder.style.color = '#DC2626';
-        }
+        const loadImage = async () => {
+            safeSetHTML(placeholder, '<span class="gemini-loading-spinner"></span>載入圖片...');
+            placeholder.style.color = '';
+            try {
+                const imageBlob = await fetchResource(imageUrl, 'GET', null, 'blob');
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(imageBlob);
+                img.alt = 'AI 圖片';
+                img.style.cssText = 'max-width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); cursor: pointer;';
+                img.onload = () => placeholder.parentNode.replaceChild(img, placeholder);
+                // 點擊圖片全螢幕檢視
+                img.addEventListener('click', () => GM_openInTab(img.src, { active: true }));
+            } catch (error) {
+                safeSetHTML(placeholder, `❌ 載入失敗: ${error.message} <button style="margin-left:8px; padding: 4px 8px; border-radius:4px; font-size:12px; cursor:pointer;" class="gemini-control-button">⟳ 點擊重試</button>`);
+                placeholder.style.color = '#DC2626';
+                const retryBtn = placeholder.querySelector('button');
+                if (retryBtn) retryBtn.addEventListener('click', loadImage);
+            }
+        };
+        loadImage();
     }
 
     /* --- § 視圖控制器與按鈕注入 --- */
@@ -1899,11 +1908,16 @@
 
         button.onclick = async (e) => {
             e.stopPropagation(); e.preventDefault();
+            // 防呆攔截：若核心引擎已在處理中，忽略任何多餘點擊
+            if (button.dataset.processing === 'true') return;
+
+            button.dataset.processing = 'true';
+            button.disabled = true;
+
             const isRaw = button.dataset.mode === 'raw';
 
             if (isRaw) {
                 // 切換至預覽模式
-                button.disabled = true;
                 button.innerHTML = '⏳ 處理中...';
                 try {
                     const result = await RendererStrategy[type](content, codeBlockContainer, previewDiv);
@@ -1956,8 +1970,10 @@
                     console.error('渲染失敗:', error);
                     Utils.showToast(`❌ 渲染失敗: ${error.message}`);
                     button.innerHTML = `${btnConfig.icon} ${btnConfig.text}`;
+                } finally {
+                    button.disabled = false;
+                    button.dataset.processing = 'false';
                 }
-                button.disabled = false;
             } else {
                 // 切換回原始碼模式
                 viewContainer.classList.remove('tm-state-inline-preview', 'tm-state-iframe-preview');
@@ -1972,6 +1988,9 @@
                 previewDiv.innerHTML = '';
                 const iframePreview = viewContainer.querySelector('.gemini-preview-container');
                 if (iframePreview) iframePreview.remove();
+
+                button.disabled = false;
+                button.dataset.processing = 'false';
             }
         };
 
@@ -3337,8 +3356,9 @@
                     content.appendChild(btn);
                 });
 
-                // 強制觸發 Window Resize 向 Angular 廣播重繪，解決版面遮擋
-                window.dispatchEvent(new Event('resize'));
+                // [UAT 漏洞修復] 移除 window.dispatchEvent(new Event('resize')) 
+                // 原因：頻繁在高頻調用的情境觸發 global resize，會導致底層框架 (Angular/Lit) 大量執行 layout recalculation，進而觸發防護機制封鎖 IP
+                // 如有遮擋問題，應改以 CSS (例如 z-index 或 transform) 解決。
             }, 100);
         }
 
@@ -3563,17 +3583,10 @@ applyGem(promptText) {
                 const deltaX = touchEndX - touchStartX;
                 const deltaY = touchEndY - touchStartY;
 
-                // Horizontal swipe detection
+                // Horizontal swipe detection for global use, avoid swiping tiny buttons
                 if (Math.abs(deltaX) > CONFIG.GESTURE_SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
-                    const target = e.target.closest('.tm-action-btn, .gemini-render-button');
-                    if (target) {
-                        if (deltaX > 0) {
-                            target.classList.add('tm-swipe-right');
-                        } else {
-                            target.classList.add('tm-swipe-left');
-                        }
-                        setTimeout(() => target.classList.remove('tm-swipe-left', 'tm-swipe-right'), 300);
-                    }
+                    // Placeholder for future global swipe controls
+                    // Swiping tiny action buttons is an unreasonable UX pattern and causes scroll conflicts
                 }
 
                 touchStartX = 0;
