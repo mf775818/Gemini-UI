@@ -1514,64 +1514,73 @@
                 });
                 document.getElementById('zoom-reset').addEventListener('click', reset);
 
-                // 觸控事件
-                container.addEventListener('touchstart', function(e) {
-                    if (e.touches.length === 1) {
+                // === 頂級業界 UX：統一 Pointer Events 多指觸控與平移縮放引擎 ===
+                container.style.touchAction = 'none'; // 防止預設縮放滾動干擾
+                const pointers = new Map();
+                
+                container.addEventListener('pointerdown', function(e) {
+                    pointers.set(e.pointerId, e);
+                    container.setPointerCapture(e.pointerId);
+                    
+                    if (pointers.size === 1) {
                         isPanning = true;
-                        startX = e.touches[0].clientX - posX;
-                        startY = e.touches[0].clientY - posY;
-                    } else if (e.touches.length === 2) {
-                        const dx = e.touches[0].clientX - e.touches[1].clientX;
-                        const dy = e.touches[0].clientY - e.touches[1].clientY;
+                        container.classList.add('panning');
+                        startX = e.clientX - posX;
+                        startY = e.clientY - posY;
+                    } else if (pointers.size === 2) {
+                        isPanning = false; 
+                        const pts = Array.from(pointers.values());
+                        const dx = pts[0].clientX - pts[1].clientX;
+                        const dy = pts[0].clientY - pts[1].clientY;
                         initialDistance = Math.sqrt(dx * dx + dy * dy);
                     }
                 });
 
-                container.addEventListener('touchmove', function(e) {
-                    e.preventDefault();
-                    if (e.touches.length === 1 && isPanning) {
-                        posX = e.touches[0].clientX - startX;
-                        posY = e.touches[0].clientY - startY;
-                        updateTransform();
-                    } else if (e.touches.length === 2) {
-                        const dx = e.touches[0].clientX - e.touches[1].clientX;
-                        const dy = e.touches[0].clientY - e.touches[1].clientY;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        const delta = (distance - initialDistance) * 0.01;
-
-                        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-
-                        zoom(delta, centerX, centerY);
-                        initialDistance = distance;
-                    }
-                }, { passive: false });
-
-                container.addEventListener('touchend', function() {
-                    isPanning = false;
-                });
-
-                // 滑鼠事件
-                container.addEventListener('mousedown', function(e) {
-                    isPanning = true;
-                    startX = e.clientX - posX;
-                    startY = e.clientY - posY;
-                    container.classList.add('panning');
-                    e.preventDefault();
-                });
-
-                document.addEventListener('mousemove', function(e) {
-                    if (isPanning) {
+                container.addEventListener('pointermove', function(e) {
+                    if (!pointers.has(e.pointerId)) return;
+                    pointers.set(e.pointerId, e);
+                    
+                    if (pointers.size === 1 && isPanning) {
                         posX = e.clientX - startX;
                         posY = e.clientY - startY;
                         updateTransform();
+                    } else if (pointers.size === 2) {
+                        const pts = Array.from(pointers.values());
+                        const dx = pts[0].clientX - pts[1].clientX;
+                        const dy = pts[0].clientY - pts[1].clientY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        const delta = (distance - initialDistance) * 0.01;
+                        if (Math.abs(delta) > 0.01) {
+                            const centerX = (pts[0].clientX + pts[1].clientX) / 2;
+                            const centerY = (pts[0].clientY + pts[1].clientY) / 2;
+                            zoom(delta, centerX, centerY);
+                            initialDistance = distance;
+                        }
                     }
                 });
 
-                document.addEventListener('mouseup', function() {
-                    isPanning = false;
-                    container.classList.remove('panning');
-                });
+                const onPointerUp = function(e) {
+                    pointers.delete(e.pointerId);
+                    try { container.releasePointerCapture(e.pointerId); } catch(err) {}
+                    
+                    if (pointers.size < 2) {
+                        initialDistance = 0;
+                    }
+                    if (pointers.size === 0) {
+                        isPanning = false;
+                        container.classList.remove('panning');
+                    } else if (pointers.size === 1) {
+                        // 當放開一指時，維持平移狀態並重設座標點
+                        const remaining = Array.from(pointers.values())[0];
+                        isPanning = true;
+                        startX = remaining.clientX - posX;
+                        startY = remaining.clientY - posY;
+                    }
+                };
+                
+                container.addEventListener('pointerup', onPointerUp);
+                container.addEventListener('pointercancel', onPointerUp);
 
                 container.addEventListener('wheel', function(e) {
                     e.preventDefault();
@@ -2901,12 +2910,13 @@
                     Utils.showToast('📋 欄位寬度已智慧最適化');
                 });
 
-                // === 頂級滑鼠拖曳 UX：Real-time 橫向動態調整 ===
-                resizer.addEventListener('mousedown', (e) => {
-                    if (e.button !== 0) return;
-                    e.preventDefault();
+                // === 頂級業界 UX：統一 Pointer Events 橫向動態調整 (支援滑鼠、觸控與觸控筆) ===
+                resizer.addEventListener('pointerdown', (e) => {
+                    if (e.pointerType === 'mouse' && e.button !== 0) return;
+                    e.preventDefault(); // 防止選取或觸控時不預期的滾動
                     e.stopPropagation();
 
+                    resizer.setPointerCapture(e.pointerId);
                     resizer.classList.add('tm-resizing');
 
                     const colIndex = parseInt(resizer.dataset.colIndex, 10);
@@ -2922,7 +2932,7 @@
                     document.body.style.setProperty('cursor', 'col-resize', 'important');
                     document.body.style.setProperty('user-select', 'none', 'important');
 
-                    const onMouseMove = (moveEvent) => {
+                    const onPointerMove = (moveEvent) => {
                         const dx = moveEvent.clientX - startX;
 
                         let targetWidth = startWidth + dx;
@@ -2956,81 +2966,21 @@
                         table.style.setProperty('min-width', '100%', 'important');
                     };
 
-                    const onMouseUp = () => {
+                    const onPointerUp = (upEvent) => {
                         resizer.classList.remove('tm-resizing');
                         document.body.style.removeProperty('cursor');
                         document.body.style.removeProperty('user-select');
 
-                        document.removeEventListener('mousemove', onMouseMove);
-                        document.removeEventListener('mouseup', onMouseUp);
+                        resizer.releasePointerCapture(upEvent.pointerId);
+                        resizer.removeEventListener('pointermove', onPointerMove);
+                        resizer.removeEventListener('pointerup', onPointerUp);
+                        resizer.removeEventListener('pointercancel', onPointerUp);
                     };
 
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
+                    resizer.addEventListener('pointermove', onPointerMove);
+                    resizer.addEventListener('pointerup', onPointerUp);
+                    resizer.addEventListener('pointercancel', onPointerUp);
                 });
-
-                // === 平板與移動端 Touch 支援 ===
-                resizer.addEventListener('touchstart', (e) => {
-                    if (e.touches.length !== 1) return;
-                    const touch = e.touches[0];
-
-                    resizer.classList.add('tm-resizing');
-
-                    const colIndex = parseInt(resizer.dataset.colIndex, 10);
-                    const colCells = Array.from(cells);
-                    const startWidths = colCells.map(c => c.getBoundingClientRect().width);
-
-                    table.style.setProperty('table-layout', 'fixed', 'important');
-
-                    const startX = touch.clientX;
-                    const startWidth = startWidths[colIndex];
-                    const nextStartWidth = startWidths[colIndex + 1];
-
-                    const onTouchMove = (moveEvent) => {
-                        if (moveEvent.touches.length !== 1) return;
-                        const currentTouch = moveEvent.touches[0];
-                        const dx = currentTouch.clientX - startX;
-
-                        let targetWidth = startWidth + dx;
-                        let targetNextWidth = nextStartWidth - dx;
-
-                        const MIN_COL_WIDTH = 35;
-                        if (targetWidth < MIN_COL_WIDTH) {
-                            const diff = MIN_COL_WIDTH - targetWidth;
-                            targetWidth = MIN_COL_WIDTH;
-                            targetNextWidth -= diff;
-                        }
-                        if (targetNextWidth < MIN_COL_WIDTH) {
-                            const diff = MIN_COL_WIDTH - targetNextWidth;
-                            targetNextWidth = MIN_COL_WIDTH;
-                            targetWidth -= diff;
-                        }
-
-                        const currentWidths = [...startWidths];
-                        currentWidths[colIndex] = targetWidth;
-                        currentWidths[colIndex + 1] = targetNextWidth;
-
-                        const tableSumWidth = currentWidths.reduce((sum, w) => sum + w, 0) || 1;
-
-                        colCells.forEach((c, idx) => {
-                            const pctWidth = ((currentWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
-                            c.style.setProperty('width', pctWidth, 'important');
-                            c.style.setProperty('min-width', pctWidth, 'important');
-                        });
-
-                        table.style.setProperty('width', '100%', 'important');
-                        table.style.setProperty('min-width', '100%', 'important');
-                    };
-
-                    const onTouchEnd = () => {
-                        resizer.classList.remove('tm-resizing');
-                        document.removeEventListener('touchmove', onTouchMove);
-                        document.removeEventListener('touchend', onTouchEnd);
-                    };
-
-                    document.addEventListener('touchmove', onTouchMove, { passive: true });
-                    document.addEventListener('touchend', onTouchEnd);
-                }, { passive: true });
             });
         },
 
@@ -3129,6 +3079,14 @@
                 });
             };
 
+            // UAT 防呆驗證：確保使用者的滾動意圖是整體頁面，而非操作局部 UI 元件
+            const isGlobalScrollIntent = (target) => {
+                if (!target || target === window || target === document || target === document.body) return true;
+                // 若使用者正在與互動區域 (表格、圖表、輸入框等) 進行局部滾動，應予過濾
+                const isLocalUI = target.closest && target.closest('.tm-table-container, .tm-mermaid-container, iframe, pre, code, [contenteditable="true"], .q-box');
+                return !isLocalUI;
+            };
+
             const handleTouchStart = (e) => {
                 if (!this.targetElement || !this.isExpanded) return;
                 if (e.touches && e.touches.length > 0) {
@@ -3140,6 +3098,8 @@
             const handleTouchMove = (e) => {
                 if (!this.targetElement || !this.isExpanded || this.targetElement.contains(document.activeElement)) return;
                 if (!e.touches || e.touches.length === 0) return;
+                
+                if (!isGlobalScrollIntent(e.target)) return;
 
                 const touchY = e.touches[0].clientY;
                 const touchX = e.touches[0].clientX;
@@ -3163,13 +3123,16 @@
 
             const handleWheel = (e) => {
                 if (!this.targetElement) return;
-                // 電腦端 UX 優化：滑鼠滾輪/觸控板滾動超過特定閾值才縮小
+                // 電腦端 UX 優化：過濾局部 UI 工具操作，僅響應主體滾動
+                if (!isGlobalScrollIntent(e.target)) return;
+                
                 if (Math.abs(e.deltaY) > 5) checkScrollIntent();
             };
 
-            const handleScroll = () => {
+            const handleScroll = (e) => {
                 if (!this.targetElement) return;
-                // 原生 scroll 捕捉：應對拖曳捲軸、鍵盤上下鍵、PgUp/PgDn 等各種瀏覽器自帶的滾動行為
+                // 原生 scroll 捕捉：防禦來自不可預期局部容器的氣泡事件
+                if (e.target && !isGlobalScrollIntent(e.target)) return;
                 checkScrollIntent();
             };
 
