@@ -745,7 +745,7 @@
         left: auto !important;
     }
 
-.gemini-ui-collapsed {
+	.gemini-ui-collapsed {
         width: auto !important;
         min-width: 150px !important;
         max-width: 250px !important;
@@ -757,7 +757,7 @@
         box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
         cursor: pointer !important;
         border-radius: 24px !important;
-        background: rgba(30, 30, 46, 0.8) !important; /* 工業級半透明毛玻璃深色背景 */
+        background: rgba(30, 30, 46, 0.6) !important; /* 工業級半透明毛玻璃深色背景 */
         border: 2px solid var(--accent-green) !important; /* 綠色導引強調邊框 */
         overflow: hidden !important;
         display: flex !important;
@@ -766,7 +766,7 @@
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 
         position: fixed !important;
-        bottom: 17px !important; /* 原始 24px 下移 5px 至 19px */
+        bottom: 15px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         backdrop-filter: blur(12px) !important;
@@ -807,6 +807,40 @@
         transform: translateX(-50%) translateY(-2px) !important;
         background: rgba(45, 45, 68, 0.95) !important;
         border-color: var(--accent-yellow) !important; /* 懸停時邊框轉換黃色 */
+    }
+
+    /* 膠囊化同步：AI 正在回應狀態 */
+    .gemini-ui-collapsed.gemini-ui-generating::before,
+    .gemini-ui-collapsed.gemini-ui-generating::after {
+        content: "⚡ AI 正在回應..." !important;
+        color: var(--accent-yellow) !important;
+        animation: gemini-text-blink 1.5s infinite ease-in-out !important;
+    }
+
+    .gemini-ui-collapsed.gemini-ui-generating {
+        background: rgba(30, 30, 46, 0.9) !important;
+        border: 2px solid var(--accent-yellow) !important;
+        animation: gemini-generating-pulse 2s infinite ease-in-out !important;
+    }
+
+    @keyframes gemini-text-blink {
+        0%, 100% { opacity: 0.75; }
+        50% { opacity: 1; }
+    }
+
+    @keyframes gemini-generating-pulse {
+        0% {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 4px rgba(250, 189, 47, 0.3) !important;
+            border-color: var(--accent-yellow) !important;
+        }
+        50% {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 16px rgba(250, 189, 47, 0.7) !important;
+            border-color: var(--accent-orange) !important;
+        }
+        100% {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 4px rgba(250, 189, 47, 0.3) !important;
+            border-color: var(--accent-yellow) !important;
+        }
     }
 
     /* === v6.0 Industrial UX: Micro-interactions & Animations === */
@@ -3105,6 +3139,11 @@
                 if (this.targetElement && !this.isExpanded && this.isOnHomepageWithoutChat()) {
                     this.expand();
                 }
+
+                // 同步 AI 正在回應與膠囊化之狀態
+                if (this.targetElement) {
+                    this.syncGeneratingState();
+                }
             });
             obs.observe(document.body, { childList: true, subtree: true });
 
@@ -3258,6 +3297,36 @@
             this.targetElement.classList.remove('gemini-ui-expanded');
             this.targetElement.classList.add('gemini-ui-collapsed');
             log('UI 縮成膠囊 (Collapsed)');
+        }
+
+        syncGeneratingState() {
+            if (!this.targetElement) return;
+
+            // BDD 情境檢測:
+            // 停止按鈕是否存在 (AI 正在回應中) => img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled
+            // 以及通用之中斷/停止按鈕 selectors
+            const stopBtn = document.querySelector(
+                'img.lm-icon-xl.icon-filled, ' +
+                'mat-icon.lm-icon-xl.icon-filled, ' +
+                'button[aria-label*="Stop"], ' +
+                'button[aria-label*="Cancel"], ' +
+                'button[aria-label*="停止"], ' +
+                'button[aria-label*="中斷"]'
+            );
+
+            const isGenerating = !!stopBtn;
+
+            if (isGenerating) {
+                if (!this.targetElement.classList.contains('gemini-ui-generating')) {
+                    this.targetElement.classList.add('gemini-ui-generating');
+                    log('AI 正在回應中 (State: Generating)');
+                }
+            } else {
+                if (this.targetElement.classList.contains('gemini-ui-generating')) {
+                    this.targetElement.classList.remove('gemini-ui-generating');
+                    log('AI 回應結束 (State: Idle)');
+                }
+            }
         }
     }
 
