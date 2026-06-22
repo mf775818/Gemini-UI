@@ -821,6 +821,69 @@
         background: rgba(30, 30, 46, 0.9) !important;
         border: 2px solid var(--accent-yellow) !important;
         animation: gemini-generating-pulse 2s infinite ease-in-out !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    /* 懸停即時控制 (Hover Overlay) 微型中斷按鈕 */
+    .gemini-ui-stop-overlay {
+        display: none !important;
+    }
+
+    .gemini-ui-collapsed.gemini-ui-generating .gemini-ui-stop-overlay {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: absolute !important;
+        right: 8px !important;
+        top: 50% !important;
+        transform: translateY(-50%) scale(0.8) !important;
+        width: 22px !important;
+        height: 22px !important;
+        border-radius: 50% !important;
+        background: rgba(239, 68, 68, 0.15) !important;
+        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        color: #ef4444 !important;
+        font-size: 9px !important;
+        cursor: pointer !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        visibility: visible !important;
+        z-index: 10001 !important;
+    }
+
+    .gemini-ui-collapsed.gemini-ui-generating:hover .gemini-ui-stop-overlay {
+        opacity: 1 !important;
+        transform: translateY(-50%) scale(1) !important;
+        pointer-events: auto !important;
+    }
+
+    .gemini-ui-collapsed.gemini-ui-generating:hover {
+        padding-right: 38px !important;
+        min-width: 180px !important;
+    }
+
+    /* 行動裝置/觸控端極致適配 (No Hover 依賴) */
+    .gemini-ui-touch.gemini-ui-collapsed.gemini-ui-generating .gemini-ui-stop-overlay {
+        opacity: 0.95 !important;
+        transform: translateY(-50%) scale(1) !important;
+        pointer-events: auto !important;
+    }
+
+    .gemini-ui-touch.gemini-ui-collapsed.gemini-ui-generating {
+        padding-right: 38px !important;
+        min-width: 180px !important;
+    }
+
+    .gemini-ui-stop-overlay:hover {
+        background: rgba(239, 68, 68, 0.85) !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+    }
+
+    .gemini-ui-stop-overlay:active {
+        background: rgba(220, 38, 38, 1) !important;
+        transform: translateY(-50%) scale(0.9) !important;
     }
 
     @keyframes gemini-text-blink {
@@ -3105,6 +3168,7 @@
             this.targetElement = null;
             this.isExpanded = true;
             this.hasBoundGlobals = false;
+            this.isForcingStop = false;
         }
 
         // 工業級反應式檢測：判斷當前是否處於無對話紀錄之首頁狀態
@@ -3235,11 +3299,48 @@
         mount() {
             this.targetElement.classList.add('gemini-ui-smart-container', 'gemini-ui-expanded');
 
+            // 偵測並標記行動裝置/觸控端環境，以提供無依賴 hover 的極致手勢優化
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                this.targetElement.classList.add('gemini-ui-touch');
+            }
+
+            // 1. 檢測並自動建立膠囊化處置的懸停紅色中斷按鈕
+            if (!this.targetElement.querySelector('.gemini-ui-stop-overlay')) {
+                const stopOverlay = document.createElement('div');
+                stopOverlay.className = 'gemini-ui-stop-overlay';
+                stopOverlay.innerHTML = '⏹️';
+                stopOverlay.title = '立即中斷 AI 回應並返回';
+                
+                // 停止事件冒泡，防止觸發膠囊本體的點擊展開
+                stopOverlay.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                });
+                
+                // 行動裝置/觸控端 TouchStart 手勢直接擊發，消除 300ms Click 延誤
+                stopOverlay.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.triggerStopAndRestore();
+                }, { passive: false });
+
+                stopOverlay.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.triggerStopAndRestore();
+                });
+                
+                this.targetElement.appendChild(stopOverlay);
+            }
+
             // 綁定焦點事件 (使用 Event Delegation 架構)
             // 將事件處理器存起來以備之後移除 (若有需要)
             this._focusInHandler = this.handleFocusIn.bind(this);
             this._focusOutHandler = this.handleFocusOut.bind(this);
-            this._mouseDownHandler = () => {
+            this._mouseDownHandler = (e) => {
+                // 如果點選的是中斷按鈕，不做處理
+                if (e.target && e.target.classList && e.target.classList.contains('gemini-ui-stop-overlay')) return;
+                
                 if (!this.isExpanded) {
                     this.expand();
                     // 強制獲得焦點以防立即縮小
@@ -3299,8 +3400,65 @@
             log('UI 縮成膠囊 (Collapsed)');
         }
 
+        triggerStopAndRestore() {
+            // 設立鎖定鎖阻斷，防止 DOM 重繪延遲引起的雙重循環
+            this.isForcingStop = true;
+            setTimeout(() => {
+                this.isForcingStop = false;
+            }, 1000);
+
+            // 頃刻移除狀態 class，阻斷重繪
+            if (this.targetElement) {
+                this.targetElement.classList.remove('gemini-ui-generating');
+            }
+
+            const stopBtn = document.querySelector(
+                'img.lm-icon-xl.icon-filled, ' +
+                'mat-icon.lm-icon-xl.icon-filled, ' +
+                'button[aria-label*="Stop"], ' +
+                'button[aria-label*="Cancel"], ' +
+                'button[aria-label*="停止"], ' +
+                'button[aria-label*="中斷"]'
+            );
+
+            if (stopBtn) {
+                stopBtn.click();
+                log('已成功點擊原生中斷按鈕停止 AI 發話');
+            }
+
+            // 紅色中斷事件驅動聊天視窗返回，不要還停留在膠囊狀態，並把焦點指向聊天對話容器
+            this.expand();
+            
+            setTimeout(() => {
+                const input = this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea');
+                if (input) {
+                    input.focus();
+                    
+                    // 高級 UX 自動將光標放置於編輯器最末尾
+                    try {
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(input);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    } catch (err) {
+                        console.warn('[Gemini Ultimate] QuickCursorFocus element error', err);
+                    }
+                }
+            }, 100);
+        }
+
         syncGeneratingState() {
             if (!this.targetElement) return;
+
+            // 設立鎖定鎖阻斷，防止剛點擊中斷時 DOM 尚未更新而進入雙重折疊循環
+            if (this.isForcingStop) {
+                if (this.targetElement.classList.contains('gemini-ui-generating')) {
+                    this.targetElement.classList.remove('gemini-ui-generating');
+                }
+                return;
+            }
 
             // BDD 情境檢測:
             // 停止按鈕是否存在 (AI 正在回應中) => img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled
@@ -3320,6 +3478,17 @@
                 if (!this.targetElement.classList.contains('gemini-ui-generating')) {
                     this.targetElement.classList.add('gemini-ui-generating');
                     log('AI 正在回應中 (State: Generating)');
+
+                    // AI回復中自動縮小成膠囊化狀態
+                    setTimeout(() => {
+                        if (this.isExpanded) {
+                            // 主動移開焦點以避免輸入框卡住，並執行折疊
+                            if (document.activeElement && this.targetElement.contains(document.activeElement)) {
+                                document.activeElement.blur();
+                            }
+                            this.collapse();
+                        }
+                    }, 300); // 提供 300ms 緩衝讓使用者感受視覺切換
                 }
             } else {
                 if (this.targetElement.classList.contains('gemini-ui-generating')) {
