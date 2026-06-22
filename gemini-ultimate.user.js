@@ -3412,28 +3412,70 @@
                 this.targetElement.classList.remove('gemini-ui-generating');
             }
 
-            const stopBtn = document.querySelector(
-                'img.lm-icon-xl.icon-filled, ' +
-                'mat-icon.lm-icon-xl.icon-filled, ' +
-                'button[aria-label*="Stop"], ' +
-                'button[aria-label*="Cancel"], ' +
-                'button[aria-label*="停止"], ' +
-                'button[aria-label*="中斷"]'
-            );
-
-            if (stopBtn) {
-                stopBtn.click();
-                log('已成功點擊原生中斷按鈕停止 AI 發話');
-            }
-
             // 紅色中斷事件驅動聊天視窗返回，不要還停留在膠囊狀態，並把焦點指向聊天對話容器
             this.expand();
-            
+
+            // 提供 30ms 微任務延遲，等 CSS 屬性與 pointer-events 恢復解凍後再進行真實點擊，否則在 pointer-events: none 下事件會失效
             setTimeout(() => {
-                const input = this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea');
+                const clickStop = () => {
+                    const stopBtn = document.querySelector(
+                        'img.lm-icon-xl.icon-filled, ' +
+                        'mat-icon.lm-icon-xl.icon-filled, ' +
+                        'button[aria-label*="Stop"], ' +
+                        'button[aria-label*="Cancel"], ' +
+                        'button[aria-label*="停止"], ' +
+                        'button[aria-label*="中斷"]'
+                    );
+
+                    if (stopBtn) {
+                        try {
+                            // 1. 原生 click 呼叫
+                            stopBtn.click();
+                            
+                            // 2. 工業級事件模擬補刀：分發滑鼠完整點擊事件鏈，確保被底層框架 (Angular/React/Lit) 順利監聽到
+                            const events = ['mousedown', 'mouseup', 'click'];
+                            events.forEach(evt => {
+                                const mouseEvt = new MouseEvent(evt, {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window,
+                                    buttons: 1
+                                });
+                                stopBtn.dispatchEvent(mouseEvt);
+                            });
+                            log('已成功點擊並補刀分發原生中斷按鈕停止 AI 發話');
+                            return true;
+                        } catch (err) {
+                            console.warn('[Gemini Ultimate] Dispatch stop events failed', err);
+                        }
+                    }
+                    return false;
+                };
+
+                // 第一波即刻觸發
+                clickStop();
+
+                // 第二波 (100ms) 補刀：解決可能因 React/DOM 更新非同步造成的瞬時丟包
+                setTimeout(() => {
+                    clickStop();
+                }, 100);
+
+                // 第三波 (350ms) 終極補刀
+                setTimeout(() => {
+                    clickStop();
+                }, 350);
+
+                // 強制指向並聚焦對話編輯器，拋擲虛擬變動事件強制框架刷新 UI
+                const input = this.targetElement ? this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea') : null;
                 if (input) {
                     input.focus();
                     
+                    // 發送 dummy inputs 更新瀏覽器輸入框狀態庫，促使停止按鈕 UI 立即切換回復成發送按鈕
+                    try {
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    } catch (e) {}
+
                     // 高級 UX 自動將光標放置於編輯器最末尾
                     try {
                         const range = document.createRange();
@@ -3446,7 +3488,7 @@
                         console.warn('[Gemini Ultimate] QuickCursorFocus element error', err);
                     }
                 }
-            }, 100);
+            }, 30);
         }
 
         syncGeneratingState() {
