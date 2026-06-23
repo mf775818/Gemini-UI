@@ -3162,134 +3162,146 @@
         }
     };
 
-    /* === UIImprovementsManager & AuraEngine (v6.0) === */
+    /* === UIImprovementsManager & AuraEngine (v6.0 - Industrial Automaton DFA Refactor) === */
+    const CapsuleState = {
+        IDLE_HOMEPAGE: 'IDLE_HOMEPAGE',
+        EXPANDED_FOCUSED: 'EXPANDED_FOCUSED',
+        EXPANDED_BLURRED: 'EXPANDED_BLURRED',
+        COLLAPSING_ANIMATING: 'COLLAPSING_ANIMATING',
+        COLLAPSED_CAPSULE: 'COLLAPSED_CAPSULE'
+    };
+
+    class IntentRecognizer {
+        constructor(onLeaveIntent) {
+            this.onLeaveIntent = onLeaveIntent;
+            this.cumScrollDist = 0;
+            this.lastScrollTime = 0;
+            this.touchStartY = 0;
+            this.touchStartX = 0;
+            
+            this.handleScroll = this.handleScroll.bind(this);
+            this.handleWheel = this.handleWheel.bind(this);
+            this.handleTouchStart = this.handleTouchStart.bind(this);
+            this.handleTouchMove = this.handleTouchMove.bind(this);
+        }
+        mount() {
+            window.addEventListener('scroll', this.handleScroll, { passive: true, capture: true });
+            window.addEventListener('wheel', this.handleWheel, { passive: true, capture: true });
+            window.addEventListener('touchstart', this.handleTouchStart, { passive: true, capture: true });
+            window.addEventListener('touchmove', this.handleTouchMove, { passive: true, capture: true });
+        }
+        teardown() {
+            window.removeEventListener('scroll', this.handleScroll, { capture: true });
+            window.removeEventListener('wheel', this.handleWheel, { capture: true });
+            window.removeEventListener('touchstart', this.handleTouchStart, { capture: true });
+            window.removeEventListener('touchmove', this.handleTouchMove, { capture: true });
+        }
+        
+        checkMomentum(dy) {
+            const now = Date.now();
+            if (now - this.lastScrollTime > 150) this.cumScrollDist = 0;
+            this.cumScrollDist += Math.abs(dy);
+            this.lastScrollTime = now;
+
+            if (this.cumScrollDist > 50) {
+                this.cumScrollDist = 0;
+                this.onLeaveIntent();
+            }
+        }
+        
+        handleScroll() { this.checkMomentum(5); }
+        handleWheel(e) { this.checkMomentum(e.deltaY); }
+        handleTouchStart(e) { 
+            if (e.touches && e.touches.length > 0) {
+                this.touchStartY = e.touches[0].clientY; 
+                this.touchStartX = e.touches[0].clientX;
+            }
+        }
+        handleTouchMove(e) {
+            if (!e.touches || e.touches.length === 0) return;
+            const touchY = e.touches[0].clientY;
+            let dy = touchY - this.touchStartY;
+            this.touchStartY = touchY;
+            this.checkMomentum(dy);
+        }
+    }
+
     class UIImprovementsManager {
         constructor() {
             this.targetElement = null;
-            this.isExpanded = true;
-            this.hasBoundGlobals = false;
-            this.isForcingStop = false;
+            this.currentState = CapsuleState.IDLE_HOMEPAGE;
+            this.intentRecognizer = new IntentRecognizer(this.onUserLeaveIntent.bind(this));
+            
+            this.blurTimer = null;
+            this.animationTimer = null;
+            this.boundEvents = [];
+            this.mutationObserver = null;
         }
 
-        // 工業級反應式檢測：判斷當前是否處於無對話紀錄之首頁狀態
         isOnHomepageWithoutChat() {
             const pathname = window.location.pathname;
-            // 1. URL 檢測：首頁網址不應具有對話 ID 特徵 (/app/c/)
             const hasChatInUrl = pathname.includes('/app/c/');
-
-            // 2. DOM 檢測：尋找是否存在任何對話區、Q&A 單元以及對話串標籤
             const hasChatInDom = !!document.querySelector('.model-response-text, .user-query, .conversation, chat-history, [class*="message-row"]');
-
-            // 只有兩者皆為 false，才是真正的純淨無紀錄首頁
             return !hasChatInUrl && !hasChatInDom;
+        }
+
+        passesContentGuard() {
+            if (!this.targetElement) return false;
+            const qlEditor = this.targetElement.querySelector('.ql-editor');
+            if (qlEditor && qlEditor.textContent.trim().length > 0) return false;
+            
+            const hasPillsOrUploads = !!this.targetElement.querySelector('uploader, [aria-label*="remove"], blob, .audio-recording-in-progress, .image-preview');
+            if (hasPillsOrUploads) return false;
+
+            return true;
+        }
+
+        passesPopupGuard() {
+            const cdkOverlay = document.querySelector('.cdk-overlay-container, .cdk-overlay-backdrop-showing, .cdk-overlay-pane');
+            if (cdkOverlay && cdkOverlay.children.length > 0) {
+                if (window.getComputedStyle(cdkOverlay).display !== 'none' && window.getComputedStyle(cdkOverlay).visibility !== 'hidden') {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        isGenerating() {
+            const stopBtn = document.querySelector(
+                'img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled, button[aria-label*="Stop"], button[aria-label*="Cancel"], button[aria-label*="停止"], button[aria-label*="中斷"]'
+            );
+            return !!stopBtn;
         }
 
         init() {
             this.findTarget();
 
-            // Start an observer to handle delayed mounts and DOM replacements of chat input
-            const obs = new MutationObserver(() => {
-                // 若目前的目標元素被從 DOM 樹中移除 (SPA 框架重新渲染)，重置並重新尋找
+            this.mutationObserver = new MutationObserver(() => {
                 if (this.targetElement && !this.targetElement.isConnected) {
-                    this.targetElement = null;
-                    this.isExpanded = true;
+                    this.teardown(true);
                 }
 
                 if (!this.targetElement) {
                     this.findTarget();
                 }
 
-                // 工業級微創修正：若在首頁無任何對話紀錄時，且目前已被縮小為膠囊，立刻強制還原展開
-                if (this.targetElement && !this.isExpanded && this.isOnHomepageWithoutChat()) {
-                    this.expand();
-                }
-
-                // 同步 AI 正在回應與膠囊化之狀態
-                if (this.targetElement) {
-                    this.syncGeneratingState();
-                }
+                this.evaluateStateContext();
             });
-            obs.observe(document.body, { childList: true, subtree: true });
-
-            this.bindGlobalEvents();
-        }
-
-        bindGlobalEvents() {
-            if (this.hasBoundGlobals) return;
-            this.hasBoundGlobals = true;
-
-            let interactionRAF = null;
-            let touchStartY = 0;
-            let touchStartX = 0;
-
-            const checkScrollIntent = () => {
-                if (!this.targetElement || !this.isExpanded || this.targetElement.contains(document.activeElement)) return;
-
-                // 節流處理頻繁的觸發
-                if (interactionRAF) cancelAnimationFrame(interactionRAF);
-                interactionRAF = requestAnimationFrame(() => {
-                    this.collapse();
-                });
-            };
-
-            const handleTouchStart = (e) => {
-                if (!this.targetElement || !this.isExpanded) return;
-                if (e.touches && e.touches.length > 0) {
-                    touchStartY = e.touches[0].clientY;
-                    touchStartX = e.touches[0].clientX;
-                }
-            };
-
-            const handleTouchMove = (e) => {
-                if (!this.targetElement || !this.isExpanded || this.targetElement.contains(document.activeElement)) return;
-                if (!e.touches || e.touches.length === 0) return;
-
-                const touchY = e.touches[0].clientY;
-                const touchX = e.touches[0].clientX;
-                const deltaY = Math.abs(touchY - touchStartY);
-                const deltaX = Math.abs(touchX - touchStartX);
-
-                // 移動端 UX 優化：
-                // 1. 若為純水平滑動 (如手勢返回) -> 不干擾
-                // 2. 垂直滑動超過 15px -> 視為明確的閱讀/滾動意圖，才觸發縮小
-                if (deltaY > 15 && deltaY > deltaX) {
-                    // 若在觸控滑動時發現鍵盤是展開的 (通常 document.activeElement 仍為 input)
-                    // 此時若使用者滑動對話，我們應該強制 Blur 解面盤，並縮小膠囊，給予最佳的沉浸式閱讀體驗
-                    // 工業級防呆：主動釋放焦點
-                    if (document.activeElement &&
-                        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) {
-                        document.activeElement.blur();
-                    }
-                    checkScrollIntent();
-                }
-            };
-
-            const handleWheel = (e) => {
-                if (!this.targetElement) return;
-                // 電腦端 UX 優化：滑鼠滾輪/觸控板滾動超過特定閾值才縮小
-                if (Math.abs(e.deltaY) > 5) checkScrollIntent();
-            };
-
-            const handleScroll = () => {
-                if (!this.targetElement) return;
-                // 原生 scroll 捕捉：應對拖曳捲軸、鍵盤上下鍵、PgUp/PgDn 等各種瀏覽器自帶的滾動行為
-                checkScrollIntent();
-            };
-
-            // 使用 capture: true 強制在事件傳遞的最高層攔截 (無視子元素 stopPropagation)
-            window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-            window.addEventListener('wheel', handleWheel, { passive: true, capture: true });
-            window.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-            window.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true });
+            this.mutationObserver.observe(document.body, { childList: true, subtree: true });
         }
 
         findTarget() {
             let el = document.querySelector(CONFIG.UI_AURA.SELECTORS.TARGET);
             if (!el) el = document.querySelector(CONFIG.UI_AURA.SELECTORS.FALLBACK);
+            
+            if (el) {
+                const ce = el.querySelector('.ql-editor[contenteditable="true"], textarea:not([disabled])');
+                if (!ce) return false;
+            }
 
             if (el && !this.targetElement) {
                 this.targetElement = el;
-                log('找到目標面板，開始掛載膠囊 UI');
+                log('找到目標面板，開始掛載工業級 DFA 膠囊 UI');
                 this.mount();
                 return true;
             }
@@ -3297,250 +3309,221 @@
         }
 
         mount() {
-            this.targetElement.classList.add('gemini-ui-smart-container', 'gemini-ui-expanded');
-
-            // 偵測並標記行動裝置/觸控端環境，以提供無依賴 hover 的極致手勢優化
+            this.teardownEvents();
+            
             if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
                 this.targetElement.classList.add('gemini-ui-touch');
             }
 
-            // 1. 檢測並自動建立膠囊化處置的懸停紅色中斷按鈕
             if (!this.targetElement.querySelector('.gemini-ui-stop-overlay')) {
                 const stopOverlay = document.createElement('div');
                 stopOverlay.className = 'gemini-ui-stop-overlay';
                 stopOverlay.innerHTML = '⏹️';
                 stopOverlay.title = '立即中斷 AI 回應並返回';
                 
-                // 停止事件冒泡，防止觸發膠囊本體的點擊展開
-                stopOverlay.addEventListener('mousedown', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
+                ['mousedown', 'click', 'touchstart'].forEach(type => {
+                    stopOverlay.addEventListener(type, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.triggerStopAndRestore();
+                    }, { passive: false });
                 });
-                
-                // 行動裝置/觸控端 TouchStart 手勢直接擊發，消除 300ms Click 延誤
-                stopOverlay.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.triggerStopAndRestore();
-                }, { passive: false });
-
-                stopOverlay.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.triggerStopAndRestore();
-                });
-                
                 this.targetElement.appendChild(stopOverlay);
             }
 
-            // 綁定焦點事件 (使用 Event Delegation 架構)
-            // 將事件處理器存起來以備之後移除 (若有需要)
-            this._focusInHandler = this.handleFocusIn.bind(this);
-            this._focusOutHandler = this.handleFocusOut.bind(this);
-            this._mouseDownHandler = (e) => {
-                // 如果點選的是中斷按鈕，不做處理
-                if (e.target && e.target.classList && e.target.classList.contains('gemini-ui-stop-overlay')) return;
-                
-                if (!this.isExpanded) {
-                    this.expand();
-                    // 強制獲得焦點以防立即縮小
-                    setTimeout(() => {
-                        const input = this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea');
-                        if (input) input.focus();
-                    }, 50);
-                }
-            };
+            this.bindElementEvent(this.targetElement, 'focusin', this.onFocusIn.bind(this));
+            this.bindElementEvent(this.targetElement, 'focusout', this.onFocusOut.bind(this));
+            this.bindElementEvent(this.targetElement, 'mousedown', this.onMouseDown.bind(this));
+            this.bindElementEvent(this.targetElement, 'touchstart', this.onMouseDown.bind(this), { passive: true });
 
-            this.targetElement.addEventListener('focusin', this._focusInHandler);
-            this.targetElement.addEventListener('focusout', this._focusOutHandler);
-            this.targetElement.addEventListener('mousedown', this._mouseDownHandler);
+            this.intentRecognizer.mount();
+            this.evaluateStateContext();
         }
 
-        handleFocusIn() {
-            if (!this.isExpanded) {
-                this.expand();
+        bindElementEvent(el, type, listener, options = false) {
+            el.addEventListener(type, listener, options);
+            this.boundEvents.push({ el, type, listener, options });
+        }
+
+        teardownEvents() {
+            this.boundEvents.forEach(({ el, type, listener, options }) => {
+                el.removeEventListener(type, listener, options);
+            });
+            this.boundEvents = [];
+            this.intentRecognizer.teardown();
+        }
+
+        teardown(soft = false) {
+            this.teardownEvents();
+            if (!soft) {
+                if (this.mutationObserver) {
+                    this.mutationObserver.disconnect();
+                    this.mutationObserver = null;
+                }
+            }
+            this.targetElement = null;
+            this.currentState = CapsuleState.IDLE_HOMEPAGE;
+            if (this.blurTimer) clearTimeout(this.blurTimer);
+            if (this.animationTimer) clearTimeout(this.animationTimer);
+        }
+
+        evaluateStateContext() {
+            if (!this.targetElement) return;
+
+            const isHomepage = this.isOnHomepageWithoutChat();
+            const generating = this.isGenerating();
+
+            if (isHomepage) {
+                this.transitionTo(CapsuleState.IDLE_HOMEPAGE);
+                return;
+            }
+
+            if (generating && this.currentState !== CapsuleState.COLLAPSED_CAPSULE && this.currentState !== CapsuleState.COLLAPSING_ANIMATING) {
+                 if (!(document.activeElement && this.targetElement.contains(document.activeElement))) {
+                     this.transitionTo(CapsuleState.COLLAPSING_ANIMATING);
+                 }
+            } else if (!generating && this.currentState === CapsuleState.COLLAPSED_CAPSULE && this.targetElement.classList.contains('gemini-ui-generating')) {
+                 this.targetElement.classList.remove('gemini-ui-generating');
+            }
+            
+            if (this.currentState === CapsuleState.IDLE_HOMEPAGE && !isHomepage) {
+                this.transitionTo(CapsuleState.EXPANDED_BLURRED);
             }
         }
 
-        handleFocusOut(event) {
-            // 防呆攔截：確認新的焦點是否依然在容器內部
-            if (!this.targetElement.contains(event.relatedTarget)) {
-                // 為了避免點擊外部按鈕時的閃爍，給予 50ms 的防抖
-                setTimeout(() => {
-                    if (!this.targetElement.contains(document.activeElement)) {
-                        this.collapse();
+        transitionTo(newState) {
+            if (this.currentState === newState) return;
+            log(`[DFA] ${this.currentState} -> ${newState}`);
+            this.currentState = newState;
+
+            if (!this.targetElement) return;
+
+            if (this.animationTimer) {
+                clearTimeout(this.animationTimer);
+                this.animationTimer = null;
+            }
+
+            switch(newState) {
+                case CapsuleState.IDLE_HOMEPAGE:
+                case CapsuleState.EXPANDED_FOCUSED:
+                case CapsuleState.EXPANDED_BLURRED:
+                    this.targetElement.classList.remove('gemini-ui-collapsed', 'gemini-ui-generating');
+                    this.targetElement.classList.add('gemini-ui-expanded');
+                    break;
+                case CapsuleState.COLLAPSING_ANIMATING:
+                    if (this.isGenerating()) {
+                        this.targetElement.classList.add('gemini-ui-generating');
+                    } else {
+                        this.targetElement.classList.remove('gemini-ui-generating');
                     }
+                    this.targetElement.classList.remove('gemini-ui-expanded');
+                    this.targetElement.classList.add('gemini-ui-collapsed');
+                    
+                    this.animationTimer = setTimeout(() => {
+                        this.transitionTo(CapsuleState.COLLAPSED_CAPSULE);
+                    }, 400); 
+                    break;
+                case CapsuleState.COLLAPSED_CAPSULE:
+                    this.targetElement.classList.remove('gemini-ui-expanded');
+                    this.targetElement.classList.add('gemini-ui-collapsed');
+                    break;
+            }
+            
+            if (newState === CapsuleState.EXPANDED_FOCUSED || newState === CapsuleState.EXPANDED_BLURRED || newState === CapsuleState.IDLE_HOMEPAGE) {
+                 this.targetElement.querySelectorAll('*').forEach(child => {
+                     child.style.pointerEvents = '';
+                 });
+            }
+        }
+
+        onFocusIn(e) {
+            if (this.blurTimer) {
+                clearTimeout(this.blurTimer);
+                this.blurTimer = null;
+            }
+            
+            if (this.currentState !== CapsuleState.IDLE_HOMEPAGE) {
+                this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
+            }
+        }
+
+        onFocusOut(e) {
+            if (e.relatedTarget && (this.targetElement.contains(e.relatedTarget) || (e.relatedTarget.composedPath && e.relatedTarget.composedPath().includes(this.targetElement)))) {
+                return; // Inside Shadow DOM boundary or self
+            }
+
+            if (this.blurTimer) clearTimeout(this.blurTimer);
+            this.blurTimer = setTimeout(() => {
+                if (this.targetElement && !this.targetElement.contains(document.activeElement)) {
+                    if (this.currentState === CapsuleState.EXPANDED_FOCUSED) {
+                        this.transitionTo(CapsuleState.EXPANDED_BLURRED);
+                    }
+                }
+            }, 150); // Generous delay against popups/extensions
+        }
+
+        onMouseDown(e) {
+            if (e.target && e.target.classList && e.target.classList.contains('gemini-ui-stop-overlay')) return;
+            
+            if (this.currentState === CapsuleState.COLLAPSED_CAPSULE || this.currentState === CapsuleState.COLLAPSING_ANIMATING) {
+                this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
+                setTimeout(() => {
+                    const input = this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea');
+                    if (input) input.focus();
                 }, 50);
             }
+            
+            if (this.blurTimer) {
+                clearTimeout(this.blurTimer);
+                this.blurTimer = null;
+            }
         }
 
-        expand() {
-            this.isExpanded = true;
-            this.targetElement.classList.remove('gemini-ui-collapsed');
-            this.targetElement.classList.add('gemini-ui-expanded');
+        onUserLeaveIntent() {
+            if (this.currentState === CapsuleState.IDLE_HOMEPAGE) return;
+            
+            if (!this.passesPopupGuard()) return;
 
-            // Allow child content pointer events again
-            this.targetElement.querySelectorAll('*').forEach(child => {
-                 child.style.pointerEvents = '';
-            });
-            log('UI 展開 (Active)');
-        }
+            if (!this.passesContentGuard()) {
+                return;
+            }
 
-        collapse() {
-            // 工業級阻斷：在首頁且無對話紀錄下，絕對禁止進行聊天視窗膠囊化
-            if (this.isOnHomepageWithoutChat()) return;
-
-            // Check if there is text in the input
-            const inputEl = this.targetElement.querySelector('.ql-editor');
-            if (inputEl && inputEl.textContent.trim().length > 0) return; // do not collapse if it has text
-
-            this.isExpanded = false;
-            this.targetElement.classList.remove('gemini-ui-expanded');
-            this.targetElement.classList.add('gemini-ui-collapsed');
-            log('UI 縮成膠囊 (Collapsed)');
+            if (this.currentState === CapsuleState.EXPANDED_BLURRED || this.currentState === CapsuleState.EXPANDED_FOCUSED) {
+                if (document.activeElement && this.targetElement.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
+                this.transitionTo(CapsuleState.COLLAPSING_ANIMATING);
+            }
         }
 
         triggerStopAndRestore() {
-            // 設立鎖定鎖阻斷，防止 DOM 重繪延遲引起的雙重循環
-            this.isForcingStop = true;
+            this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
+            
+            if (this.targetElement) this.targetElement.classList.remove('gemini-ui-generating');
+
             setTimeout(() => {
-                this.isForcingStop = false;
-            }, 1000);
+                const stopBtn = document.querySelector('img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled, button[aria-label*="Stop"], button[aria-label*="Cancel"], button[aria-label*="停止"], button[aria-label*="中斷"]');
+                if (stopBtn) {
+                    stopBtn.click();
+                    ['mousedown', 'mouseup', 'click'].forEach(evt => stopBtn.dispatchEvent(new MouseEvent(evt, {bubbles: true, cancelable: true, view: window, buttons: 1})));
+                }
 
-            // 頃刻移除狀態 class，阻斷重繪
-            if (this.targetElement) {
-                this.targetElement.classList.remove('gemini-ui-generating');
-            }
-
-            // 紅色中斷事件驅動聊天視窗返回，不要還停留在膠囊狀態，並把焦點指向聊天對話容器
-            this.expand();
-
-            // 提供 30ms 微任務延遲，等 CSS 屬性與 pointer-events 恢復解凍後再進行真實點擊，否則在 pointer-events: none 下事件會失效
-            setTimeout(() => {
-                const clickStop = () => {
-                    const stopBtn = document.querySelector(
-                        'img.lm-icon-xl.icon-filled, ' +
-                        'mat-icon.lm-icon-xl.icon-filled, ' +
-                        'button[aria-label*="Stop"], ' +
-                        'button[aria-label*="Cancel"], ' +
-                        'button[aria-label*="停止"], ' +
-                        'button[aria-label*="中斷"]'
-                    );
-
-                    if (stopBtn) {
-                        try {
-                            // 1. 原生 click 呼叫
-                            stopBtn.click();
-                            
-                            // 2. 工業級事件模擬補刀：分發滑鼠完整點擊事件鏈，確保被底層框架 (Angular/React/Lit) 順利監聽到
-                            const events = ['mousedown', 'mouseup', 'click'];
-                            events.forEach(evt => {
-                                const mouseEvt = new MouseEvent(evt, {
-                                    bubbles: true,
-                                    cancelable: true,
-                                    view: window,
-                                    buttons: 1
-                                });
-                                stopBtn.dispatchEvent(mouseEvt);
-                            });
-                            log('已成功點擊並補刀分發原生中斷按鈕停止 AI 發話');
-                            return true;
-                        } catch (err) {
-                            console.warn('[Gemini Ultimate] Dispatch stop events failed', err);
-                        }
-                    }
-                    return false;
-                };
-
-                // 第一波即刻觸發
-                clickStop();
-
-                // 第二波 (100ms) 補刀：解決可能因 React/DOM 更新非同步造成的瞬時丟包
-                setTimeout(() => {
-                    clickStop();
-                }, 100);
-
-                // 第三波 (350ms) 終極補刀
-                setTimeout(() => {
-                    clickStop();
-                }, 350);
-
-                // 強制指向並聚焦對話編輯器，拋擲虛擬變動事件強制框架刷新 UI
                 const input = this.targetElement ? this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea') : null;
                 if (input) {
                     input.focus();
-                    
-                    // 發送 dummy inputs 更新瀏覽器輸入框狀態庫，促使停止按鈕 UI 立即切換回復成發送按鈕
                     try {
                         input.dispatchEvent(new Event('input', { bubbles: true }));
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
-                    } catch (e) {}
-
-                    // 高級 UX 自動將光標放置於編輯器最末尾
-                    try {
                         const range = document.createRange();
                         const sel = window.getSelection();
                         range.selectNodeContents(input);
                         range.collapse(false);
                         sel.removeAllRanges();
                         sel.addRange(range);
-                    } catch (err) {
-                        console.warn('[Gemini Ultimate] QuickCursorFocus element error', err);
-                    }
+                    } catch(e){}
                 }
             }, 30);
         }
-
-        syncGeneratingState() {
-            if (!this.targetElement) return;
-
-            // 設立鎖定鎖阻斷，防止剛點擊中斷時 DOM 尚未更新而進入雙重折疊循環
-            if (this.isForcingStop) {
-                if (this.targetElement.classList.contains('gemini-ui-generating')) {
-                    this.targetElement.classList.remove('gemini-ui-generating');
-                }
-                return;
-            }
-
-            // BDD 情境檢測:
-            // 停止按鈕是否存在 (AI 正在回應中) => img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled
-            // 以及通用之中斷/停止按鈕 selectors
-            const stopBtn = document.querySelector(
-                'img.lm-icon-xl.icon-filled, ' +
-                'mat-icon.lm-icon-xl.icon-filled, ' +
-                'button[aria-label*="Stop"], ' +
-                'button[aria-label*="Cancel"], ' +
-                'button[aria-label*="停止"], ' +
-                'button[aria-label*="中斷"]'
-            );
-
-            const isGenerating = !!stopBtn;
-
-            if (isGenerating) {
-                if (!this.targetElement.classList.contains('gemini-ui-generating')) {
-                    this.targetElement.classList.add('gemini-ui-generating');
-                    log('AI 正在回應中 (State: Generating)');
-
-                    // AI回復中自動縮小成膠囊化狀態
-                    setTimeout(() => {
-                        if (this.isExpanded) {
-                            // 主動移開焦點以避免輸入框卡住，並執行折疊
-                            if (document.activeElement && this.targetElement.contains(document.activeElement)) {
-                                document.activeElement.blur();
-                            }
-                            this.collapse();
-                        }
-                    }, 300); // 提供 300ms 緩衝讓使用者感受視覺切換
-                }
-            } else {
-                if (this.targetElement.classList.contains('gemini-ui-generating')) {
-                    this.targetElement.classList.remove('gemini-ui-generating');
-                    log('AI 回應結束 (State: Idle)');
-                }
-            }
-        }
     }
-
     /* === Private GEMs Manager (v6.0) === */
     class PrivateGEMsManager {
         constructor() {
