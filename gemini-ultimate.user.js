@@ -3373,6 +3373,8 @@
             const isHomepage = this.isOnHomepageWithoutChat();
             const generating = this.isGenerating();
 
+            this.manageImmediateReplyPosition();
+
             if (isHomepage) {
                 this.transitionTo(CapsuleState.IDLE_HOMEPAGE);
                 return;
@@ -3493,6 +3495,60 @@
                     document.activeElement.blur();
                 }
                 this.transitionTo(CapsuleState.COLLAPSING_ANIMATING);
+            }
+        }
+
+        manageImmediateReplyPosition() {
+            if (!this.targetElement) return;
+            
+            // 尋找真實的「立即回答」按鈕
+            const keywords = ['立即回答', 'respond', 'reply', '回答'];
+            let targetBtn = null;
+            
+            // 根據使用者提供的 UI 特徵，往上找真正的 button 容器
+            const indicators = document.querySelectorAll('.mat-mdc-button .mat-focus-indicator, .mat-mdc-unelevated-button .mat-focus-indicator, .mat-mdc-raised-button .mat-focus-indicator, .mat-mdc-outlined-button .mat-focus-indicator, .mat-tonal-button .mat-focus-indicator');
+            
+            let possibleButtons = Array.from(indicators).map(el => el.closest('button, a, .mat-mdc-button, .mat-mdc-unelevated-button, .mat-mdc-raised-button, .mat-mdc-outlined-button, .mat-tonal-button')).filter(Boolean);
+            
+            if (possibleButtons.length === 0) {
+                 possibleButtons = Array.from(document.querySelectorAll('button, [role="button"], .chip, .mdc-evolution-chip'));
+            }
+
+            for (const btn of possibleButtons) {
+                const text = btn.textContent ? btn.textContent.trim().toLowerCase() : '';
+                if (text && keywords.some(k => text.includes(k)) && text.length < 20) {
+                    targetBtn = btn;
+                    break;
+                }
+            }
+
+            if (targetBtn) {
+                // 如果在膠囊化模式且正在生成
+                if (this.currentState === CapsuleState.COLLAPSED_CAPSULE || this.currentState === CapsuleState.COLLAPSING_ANIMATING) {
+                    // 相對於原本位置往上平移避免被遮擋 (使用 CSS transform)
+                    targetBtn.style.setProperty('transform', 'translateY(-60px)', 'important');
+                    targetBtn.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 'important');
+                    targetBtn.style.setProperty('z-index', '10002', 'important');
+                    
+                    // 防止被包含在 targetElement 內時被隱藏
+                    targetBtn.style.setProperty('opacity', '1', 'important');
+                    targetBtn.style.setProperty('visibility', 'visible', 'important');
+                    targetBtn.style.setProperty('pointer-events', 'auto', 'important');
+                    
+                    if (!targetBtn.dataset.dfaBound) {
+                        targetBtn.dataset.dfaBound = 'true';
+                        targetBtn.addEventListener('click', () => {
+                            this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
+                        });
+                    }
+                } else {
+                    // 恢復原本樣式
+                    targetBtn.style.removeProperty('transform');
+                    targetBtn.style.removeProperty('z-index');
+                    targetBtn.style.removeProperty('opacity');
+                    targetBtn.style.removeProperty('visibility');
+                    targetBtn.style.removeProperty('pointer-events');
+                }
             }
         }
 
