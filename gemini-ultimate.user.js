@@ -1131,15 +1131,15 @@
     background: linear-gradient(
         90deg,
         transparent 0%,
-        rgba(250, 189, 47, 0.15) 15%,
-        rgba(250, 189, 47, 0.45) 50%,
-        rgba(250, 189, 47, 0.15) 85%,
+        rgba(250, 189, 47, 0.10) 0%,
+        rgba(250, 189, 47, 0.90) 50%,
+        rgba(250, 189, 47, 0.10) 100%,
         transparent 100%
     );
 }
 
 .tm-chat-divider::after {
-    content: '◆ ◆ ◆ ◆ ◆ ◆ ◆'; /* 工業風分隔符號 */
+    content: '　'; 
     position: relative;
     color: var(--accent-yellow, #fabd2f);
     font-size: 0.85rem; /* 加大字型符合無障礙規範最低視覺標準 */
