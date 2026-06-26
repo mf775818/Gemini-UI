@@ -1067,12 +1067,18 @@
         width: fit-content !important;
     }
 
-    /* 變更原生氣泡背景為統一色票 */
+    /* 變更原生氣泡背景為統一色票：高對比度優化 (文字清晰) */
     .enable-luminous-prompt-bubble .user-query-bubble-with-background:not(.edit-mode),
     .user-query-bubble-with-background:not(.edit-mode) {
-        background: var(--bg-tertiary) !important;
-        color: var(--text-primary) !important;
-        border: 1px solid rgba(250, 189, 47, 0.2) !important; /* accent-yellow 帶透明度 */
+        background: rgba(40, 40, 40, 0.95) !important; /* 更深的背景，凸顯文字 */
+        color: #ffffff !important; /* 極致清晰亮白 */
+        border: 1px solid rgba(250, 189, 47, 0.35) !important; /* 加深 accent-yellow 邊框 */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important; /* 增加立體感 */
+        font-weight: 500 !important; /* 提升文字粗細增加清晰度 */
+        line-height: 1.6 !important;
+        letter-spacing: 0.02em !important;
+        padding: 14px 20px !important; /* 確保呼吸空間 */
+        backdrop-filter: blur(8px) !important;
     }
 
     /* 確保使用者氣泡內的文字排版正確 */
@@ -1106,7 +1112,8 @@
     /* ── 對話邊界分隔線 (Chat Boundary Divider) ── */
 .tm-chat-divider {
     width: 100%;
-    margin: 1.5rem 0; /* 縮減間距，維持聊天流暢度 */
+    margin-top: -3rem !important; /* 分支預測防守：抵消移動端原生巨大 block 間距 */
+    margin-bottom: 0.5rem !important;
     position: relative;
     display: flex;
     align-items: center;
@@ -1142,7 +1149,7 @@
     text-shadow: 0 0 6px rgba(250, 189, 47, 0.4); /* 強化微發光質感 */
 }
 
-    
+
     /* ── 輸入框寬度修正 ── */
     .mat-mdc-form-field-infix {
         width: 430px !important;
@@ -2996,149 +3003,155 @@
   };
 
   /* --- § 12.4.5 HPC Table Autofit Engine (自動化自調欄寬高效能運算引擎) --- */
-  const HpcTableAutofitEngine = {
+    /* --- § 12.4.5 HPC Table Autofit Engine (EMLE 內容熵值與邊際折損平衡演算法) --- */
+const HpcTableAutofitEngine = {
     queue: new Set(),
     debounceTimer: null,
     isProcessing: false,
 
     queueTable(table) {
-      if (!table || !table.isConnected) return;
-      this.queue.add(table);
-      this.schedule();
+        if (!table || !table.isConnected) return;
+        this.queue.add(table);
+        this.schedule();
     },
 
     schedule() {
-      if (this.debounceTimer) clearTimeout(this.debounceTimer);
-      this.debounceTimer = setTimeout(() => {
-        requestAnimationFrame(() => this.processQueue());
-      }, 80); // 80ms debounce perfectly balances live response and CPU budget for streaming
+        if (this.debounceTimer) clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            requestAnimationFrame(() => this.processQueue());
+        }, 80);
     },
 
     processQueue() {
-      if (this.isProcessing) return;
-      this.isProcessing = true;
+        if (this.isProcessing) return;
+        this.isProcessing = true;
 
-      const tables = Array.from(this.queue).filter((t) => t.isConnected);
-      this.queue.clear();
+        const tables = Array.from(this.queue).filter((t) => t.isConnected);
+        this.queue.clear();
 
-      if (tables.length === 0) {
-        this.isProcessing = false;
-        return;
-      }
-
-      // --- HPC Batch Phase 1: Write (Preparation) ---
-      // Batch all reset operations together to allow the browser to process style recalculation in one single pass
-      const backups = [];
-      tables.forEach((table) => {
-        const trs = table.querySelectorAll("tr");
-        if (trs.length === 0) return;
-        const firstRow = trs[0];
-        const cells = firstRow.querySelectorAll("th, td");
-        if (cells.length === 0) return;
-
-        const tableBackups = [];
-        trs.forEach((row) => {
-          const rowCells = row.querySelectorAll("th, td");
-          rowCells.forEach((c) => {
-            tableBackups.push({
-              el: c,
-              whiteSpace: c.style.whiteSpace,
-            });
-          });
-        });
-
-        backups.push({
-          table,
-          cells,
-          trs,
-          numCols: cells.length,
-          tableBackups,
-        });
-
-        // Write Layout Parameters
-        table.style.setProperty("table-layout", "auto", "important");
-        table.style.setProperty("width", "max-content", "important");
-        table.style.setProperty("min-width", "max-content", "important");
-
-        trs.forEach((row) => {
-          const rowCells = row.querySelectorAll("th, td");
-          rowCells.forEach((c) => {
-            c.style.setProperty("width", "auto", "important");
-            c.style.setProperty("min-width", "auto", "important");
-            c.style.setProperty("white-space", "nowrap", "important");
-          });
-        });
-      });
-
-      // --- HPC Batch Phase 2: Read (Measurement) ---
-      // Now we read metric properties (scrollWidth) across all tables sequentially. Because we have already reset styles,
-      // this reads from an aligned DOM state and causes ZERO layout thrashing.
-      const results = [];
-      backups.forEach((data) => {
-        const { numCols, trs, cells, table, tableBackups } = data;
-        const optimalWidths = Array(numCols).fill(40);
-
-        trs.forEach((row) => {
-          const rowCells = row.querySelectorAll("th, td");
-          for (let idx = 0; idx < numCols; idx++) {
-            if (rowCells[idx]) {
-              const cellW = rowCells[idx].scrollWidth + 32; // Reserve padding offset
-              if (cellW > optimalWidths[idx]) {
-                optimalWidths[idx] = cellW;
-              }
-            }
-          }
-        });
-
-        // HPC Algorithm: 動態取得容器真實寬度，配置最佳化比例，極小化表格高度
-        const containerWidth = (table.parentElement && table.parentElement.clientWidth > 0) ? table.parentElement.clientWidth : window.innerWidth;
-        const dynamicMax = Math.max(containerWidth * 0.65, 300); // 單欄不超過容器 65%
-        for (let idx = 0; idx < numCols; idx++) {
-          optimalWidths[idx] = Math.min(dynamicMax, Math.max(45, optimalWidths[idx]));
+        if (tables.length === 0) {
+            this.isProcessing = false;
+            return;
         }
 
-        results.push({
-          table,
-          cells,
-          numCols,
-          optimalWidths,
-          tableBackups,
+        // [Phase 1: Write] 解除排版限制，準備測量無損寬度
+        const backups = [];
+        tables.forEach((table) => {
+            const trs = table.querySelectorAll("tr");
+            if (trs.length === 0) return;
+            const cells = trs[0].querySelectorAll("th, td");
+            if (cells.length === 0) return;
+
+            const tableBackups = [];
+            trs.forEach((row) => {
+                row.querySelectorAll("th, td").forEach((c) => {
+                    tableBackups.push({ el: c, whiteSpace: c.style.whiteSpace });
+                });
+            });
+
+            backups.push({ table, cells, trs, numCols: cells.length, tableBackups });
+
+            table.style.setProperty("table-layout", "auto", "important");
+            table.style.setProperty("width", "max-content", "important");
+            table.style.setProperty("min-width", "max-content", "important");
+
+            trs.forEach((row) => {
+                row.querySelectorAll("th, td").forEach((c) => {
+                    c.style.setProperty("width", "auto", "important");
+                    c.style.setProperty("min-width", "auto", "important");
+                    c.style.setProperty("white-space", "nowrap", "important");
+                });
+            });
         });
-      });
 
-      // --- HPC Batch Phase 3: Write (Restore & Style Application) ---
-      // Finally we lock down the computed responsive percentages to ensure robust display and high scroll performance
-      results.forEach((res) => {
-        const { table, cells, numCols, optimalWidths, tableBackups } = res;
+        // [Phase 2: Read] 測量 W_ideal 與計算文字熵值
+        const results = [];
+        backups.forEach((data) => {
+            const { numCols, trs, cells, table, tableBackups } = data;
+            const parentWidth = table.parentElement ? table.parentElement.clientWidth : 0;
+            const containerWidth = parentWidth > 0 ? parentWidth : window.innerWidth * 0.85;
 
-        // Restore cell whiteSpace properties to allow natural wraps inside fixed boxes
-        tableBackups.forEach((b) => {
-          if (b.whiteSpace) {
-            b.el.style.setProperty("white-space", b.whiteSpace, "important");
-          } else {
-            b.el.style.removeProperty("white-space");
-          }
+            const idealWidths = Array(numCols).fill(0);
+            const textLengths = Array(numCols).fill(0);
+
+            trs.forEach((row) => {
+                const rowCells = row.querySelectorAll("th, td");
+                for (let i = 0; i < numCols; i++) {
+                    if (rowCells[i]) {
+                        // 擷取無損寬度（保留 16px 緩衝區）
+                        const cellW = rowCells[i].scrollWidth + 16;
+                        if (cellW > idealWidths[i]) idealWidths[i] = cellW;
+
+                        // 累加字元長度以計算熵值
+                        textLengths[i] += (rowCells[i].innerText || rowCells[i].textContent || "").trim().length;
+                    }
+                }
+            });
+
+            const sumIdeal = idealWidths.reduce((a, b) => a + b, 0);
+            const minWidth = 45; // 絕對極限寬度 W_min
+            let finalWidthsPx = Array(numCols).fill(0);
+
+            // EMLE 資源分配邏輯
+            if (sumIdeal <= containerWidth) {
+                // 空間充裕：無損佈局填充
+                const surplus = containerWidth - sumIdeal;
+                const surplusPerCol = surplus / numCols;
+                finalWidthsPx = idealWidths.map(w => w + surplusPerCol);
+            } else {
+                // 空間匱乏：邊際剩餘分配 (Marginal Allocation)
+                // 1. 計算文字熵值權重 (E_col = Math.log(Length + 1) * (W_ideal - W_min))
+                const entropyWeights = Array(numCols).fill(0);
+                let sumEntropy = 0;
+
+                for (let i = 0; i < numCols; i++) {
+                    const logDensity = Math.log(textLengths[i] + Math.E); // 避免 log(0)
+                    const demand = Math.max(0, idealWidths[i] - minWidth);
+                    entropyWeights[i] = logDensity * demand;
+                    sumEntropy += entropyWeights[i];
+                }
+
+                // 2. 扣除保底資源後進行分配
+                const availablePool = Math.max(0, containerWidth - (minWidth * numCols));
+
+                for (let i = 0; i < numCols; i++) {
+                    const weightRatio = sumEntropy > 0 ? (entropyWeights[i] / sumEntropy) : (1 / numCols);
+                    finalWidthsPx[i] = minWidth + (availablePool * weightRatio);
+                }
+            }
+
+            results.push({ table, cells, numCols, finalWidthsPx, tableBackups });
         });
 
-        table.style.setProperty("table-layout", "fixed", "important");
-        table.style.setProperty("width", "100%", "important");
-        table.style.setProperty("min-width", "100%", "important");
+        // [Phase 3: Write] 寫入 DOM 佈局硬化
+        results.forEach((res) => {
+            const { table, cells, numCols, finalWidthsPx, tableBackups } = res;
 
-        const totalOptimalWidth =
-          optimalWidths.reduce((sum, w) => sum + w, 0) || 1;
-        cells.forEach((c, idx) => {
-          if (idx < numCols) {
-            const pctWidth =
-              ((optimalWidths[idx] / totalOptimalWidth) * 100).toFixed(4) + "%";
-            c.style.setProperty("width", pctWidth, "important");
-            c.style.setProperty("min-width", pctWidth, "important");
-          }
+            tableBackups.forEach((b) => {
+                if (b.whiteSpace) {
+                    b.el.style.setProperty("white-space", b.whiteSpace, "important");
+                } else {
+                    b.el.style.removeProperty("white-space");
+                }
+            });
+
+            table.style.setProperty("table-layout", "fixed", "important");
+            table.style.setProperty("width", "100%", "important");
+            table.style.setProperty("min-width", "100%", "important");
+
+            const totalFinalWidth = finalWidthsPx.reduce((sum, w) => sum + w, 0) || 1;
+            cells.forEach((c, idx) => {
+                if (idx < numCols) {
+                    const pctWidth = ((finalWidthsPx[idx] / totalFinalWidth) * 100).toFixed(4) + "%";
+                    c.style.setProperty("width", pctWidth, "important");
+                    c.style.setProperty("min-width", pctWidth, "important");
+                }
+            });
         });
-      });
 
-      this.isProcessing = false;
-    },
-  };
+        this.isProcessing = false;
+    }
+};
 
   /* --- § 12.5 Table Optimizer (表格微互動與操作增強) --- */
   const TableOptimizer = {
