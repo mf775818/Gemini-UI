@@ -397,7 +397,7 @@
         margin: 0 !important;
         border: none !important;
         box-shadow: none !important;
-        table-layout: fixed !important;
+        table-layout: auto !important; /* HPC: 動態調配欄寬逼近最小高度 */
     }
     /* 3. 獨立繪製單元格邊界 (Separated Grid Pattern) */
     .model-response-text th, .model-response-text td,
@@ -405,15 +405,18 @@
         border: none !important;
         border-bottom: 3px solid var(--border-color) !important;
         border-right: 3px solid var(--border-color) !important;
-        padding: 0.75rem 1rem !important;
+        padding: 0.35rem 0.5rem !important; /* HPC: 極致壓縮內距降低高度 */
+        line-height: 1.35 !important;
         font-family: var(--font-body) !important;
         font-size: var(--base-font-size) !important;
-        word-break: break-all !important; /* 強制在任何字元間換行，徹底防止擠壓與橫向滾動 */
-        overflow-wrap: anywhere !important; /* 支援現代瀏覽器最細緻換行邊界 */
+        word-break: normal !important; /* HPC: 避免無謂字元截斷導致高度增加 */
+        overflow-wrap: anywhere !important; /* 僅在絕對必要時換行防橫向滾動 */
         white-space: normal !important; /* 強制換行，取代 nowrap 及不自動換行 */
         vertical-align: middle !important;
     }
-    /* 消除邊角多餘格線 */
+    /* 消除邊角多餘格線與內部段落間距 */
+    td > p:last-child { margin-bottom: 0 !important; }
+    td > p { margin-top: 0 !important; margin-bottom: 0.2rem !important; }
     th:last-child, td:last-child { border-right: none !important; }
     tr:last-child td { border-bottom: none !important; }
 
@@ -458,12 +461,12 @@
     }
     .table-block.new-table-style table, table.table-block.new-table-style {
         display: table !important; width: 100% !important; min-width: 100% !important;
-        table-layout: fixed !important; margin: 0 !important; box-sizing: border-box !important;
+        table-layout: auto !important; margin: 0 !important; box-sizing: border-box !important;
     }
     .table-block.new-table-style th,
     .table-block.new-table-style td {
         white-space: normal !important; overflow-wrap: anywhere !important;
-        word-wrap: break-word !important; word-break: break-all !important; max-width: 0 !important;
+        word-wrap: break-word !important; word-break: normal !important; max-width: 0 !important;
     }
 
     /* ── 代碼（行內 / 塊） ── */
@@ -836,7 +839,7 @@
     /* 為 Markdown 的內容提供限制，避免圖片或表格超出邊界 */
     .tm-preview-view img { max-width: 100%; height: auto; }
     .tm-preview-view pre, .tm-preview-view code { max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; box-sizing: border-box; }
-    .tm-preview-view table { display: table !important; width: 100% !important; max-width: 100% !important; table-layout: fixed !important; overflow-x: hidden !important; box-sizing: border-box; }
+    .tm-preview-view table { display: table !important; width: 100% !important; max-width: 100% !important; table-layout: auto !important; overflow-x: hidden !important; box-sizing: border-box; }
 
     /* 雙面卡片模式 (Inline) Markdown / CSV */
     .tm-state-inline-preview .tm-raw-view { display: none !important; }
@@ -1138,6 +1141,12 @@
     letter-spacing: 0.25rem; /* 緊湊化符號間距 */
     text-shadow: 0 0 6px rgba(250, 189, 47, 0.4); /* 強化微發光質感 */
 }
+
+    
+    /* ── 輸入框寬度修正 ── */
+    .mat-mdc-form-field-infix {
+        width: 430px !important;
+    }
 
     /* === v6.0 Industrial UX: Micro-interactions & Animations === */
     /* 按鈕微互動：點擊漣漪效果 */
@@ -3081,9 +3090,11 @@
           }
         });
 
-        // Safeguard limits: Math.min(500, Math.max(40, optimalWidth))
+        // HPC Algorithm: 動態取得容器真實寬度，配置最佳化比例，極小化表格高度
+        const containerWidth = (table.parentElement && table.parentElement.clientWidth > 0) ? table.parentElement.clientWidth : window.innerWidth;
+        const dynamicMax = Math.max(containerWidth * 0.65, 300); // 單欄不超過容器 65%
         for (let idx = 0; idx < numCols; idx++) {
-          optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
+          optimalWidths[idx] = Math.min(dynamicMax, Math.max(45, optimalWidths[idx]));
         }
 
         results.push({
@@ -3315,9 +3326,11 @@
         }
       });
 
-      // 商業級最寬限制防呆：防止偶爾出現超長文字把欄位拉出上千像素
+      // HPC Algorithm: 動態取得容器真實寬度，配置最佳化比例，極小化表格高度
+      const containerWidth = (table.parentElement && table.parentElement.clientWidth > 0) ? table.parentElement.clientWidth : window.innerWidth;
+      const dynamicMax = Math.max(containerWidth * 0.65, 300); // 單欄不超過容器 65%
       for (let idx = 0; idx < numCols; idx++) {
-        optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
+        optimalWidths[idx] = Math.min(dynamicMax, Math.max(45, optimalWidths[idx]));
       }
 
       // 恢復所有 Row 節點的原狀態
