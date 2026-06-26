@@ -36,148 +36,246 @@
  */
 
 (function () {
-    'use strict';
+  "use strict";
 
-    /* --- § 0. Base Configuration --- */
-    const CONFIG = {
-        /* 偵錯 */
-        DEBUG: true,
+  /* --- § 0. Base Configuration --- */
+  const CONFIG = {
+    /* 偵錯 */
+    DEBUG: true,
 
-        /* 渲染器 */
-        REQUEST_TIMEOUT: 30000,
-        RENDER_TIMEOUT:  20000,
+    /* 渲染器 */
+    REQUEST_TIMEOUT: 30000,
+    RENDER_TIMEOUT: 20000,
 
-        /* 主題 / 折疊 */
-        FOLD_THRESHOLD: 15,
-        DEBOUNCE_MS:    300,
+    /* 主題 / 折疊 */
+    FOLD_THRESHOLD: 15,
+    DEBOUNCE_MS: 300,
 
-        /* 重試（Chrome 延遲處理） */
-        MAX_RETRIES:  3,
-        RETRY_DELAY:  100,
+    /* 重試（Chrome 延遲處理） */
+    MAX_RETRIES: 3,
+    RETRY_DELAY: 100,
 
-        /* 瀏覽器偵測 */
-        IS_IOS:     /iPad|iPhone|iPod/.test(navigator.userAgent),
-        IS_SAFARI:  /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
-        IS_MOBILE:  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-        IS_TOUCH:   ('ontouchstart' in window) || (navigator.maxTouchPoints > 0),
-        IS_CHROME:  /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor),
-        IS_FIREFOX: /Firefox/.test(navigator.userAgent),
+    /* 瀏覽器偵測 */
+    IS_IOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+    IS_SAFARI: /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+    IS_MOBILE:
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      ),
+    IS_TOUCH: "ontouchstart" in window || navigator.maxTouchPoints > 0,
+    IS_CHROME:
+      /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor),
+    IS_FIREFOX: /Firefox/.test(navigator.userAgent),
 
-        USER_AGENT: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    USER_AGENT:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 
-        /* Mermaid CDN 備份清單 */
-        MERMAID_CDNS: [
-            'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js',
-            'https://unpkg.com/mermaid@11/dist/mermaid.min.js',
-            'https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.0.0/mermaid.min.js'
-        ],
+    /* Mermaid CDN 備份清單 */
+    MERMAID_CDNS: [
+      "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js",
+      "https://unpkg.com/mermaid@11/dist/mermaid.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.0.0/mermaid.min.js",
+    ],
 
-        /* === v6.0 Industrial UX Features === */
-        /* 微互動動畫時長 */
-        ANIMATION_DURATION: 250,
-        ANIMATION_EASING: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    /* === v6.0 Industrial UX Features === */
+    /* 微互動動畫時長 */
+    ANIMATION_DURATION: 250,
+    ANIMATION_EASING: "cubic-bezier(0.4, 0, 0.2, 1)",
 
-        /* Skeleton Loading */
-        SKELETON_ENABLED: true,
-        SKELETON_ANIMATION_DURATION: 1500,
+    /* Skeleton Loading */
+    SKELETON_ENABLED: true,
+    SKELETON_ANIMATION_DURATION: 1500,
 
-        /* 手勢控制靈敏度 */
-        GESTURE_SWIPE_THRESHOLD: 50,
-        GESTURE_PINCH_THRESHOLD: 0.1,
+    /* 手勢控制靈敏度 */
+    GESTURE_SWIPE_THRESHOLD: 50,
+    GESTURE_PINCH_THRESHOLD: 0.1,
 
-        /* 鍵盤導航 */
-        KEYBOARD_NAV_ENABLED: true,
+    /* 鍵盤導航 */
+    KEYBOARD_NAV_ENABLED: true,
 
-        /* 狀態持久化 */
-        STATE_PERSISTENCE_ENABLED: true,
-        STATE_EXPIRY_MS: 7 * 24 * 60 * 60 * 1000, // 7 days
+    /* 狀態持久化 */
+    STATE_PERSISTENCE_ENABLED: true,
+    STATE_EXPIRY_MS: 7 * 24 * 60 * 60 * 1000, // 7 days
 
-        /* 虛擬滾動閾值 */
-        VIRTUAL_SCROLL_THRESHOLD: 50,
+    /* 虛擬滾動閾值 */
+    VIRTUAL_SCROLL_THRESHOLD: 50,
 
-        /* Smart Tooltip */
-        TOOLTIP_DELAY: 300,
-        TOOLTIP_FADE_DURATION: 200,
+    /* Smart Tooltip */
+    TOOLTIP_DELAY: 300,
+    TOOLTIP_FADE_DURATION: 200,
 
-        /* === Industrial Auto-Collapse Panel & Visual Aura === */
-        UI_AURA: {
-            SELECTORS: {
-                TARGET: '.ui-improvements-phase, .edge-to-edge, chat-app form.chat-app', // User spec + robust fallbacks
-                FALLBACK: '.chat-input-container, rich-textarea' // 降級目標
-            },
-            ANIMATION: {
-                SCALE_DOWN: 0.7,
-                Y_OFFSET: '-15px',
-                TIMING: '0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-            },
-            PHYSICS: {
-                AGENT_COUNT: 40,
-                MAX_SPEED: 2,
-                MAX_FORCE: 0.05
-            }
-        },
+    /* === Industrial Auto-Collapse Panel & Visual Aura === */
+    UI_AURA: {
+      SELECTORS: {
+        TARGET: ".ui-improvements-phase, .edge-to-edge, chat-app form.chat-app", // User spec + robust fallbacks
+        FALLBACK: ".chat-input-container, rich-textarea", // 降級目標
+      },
+      ANIMATION: {
+        SCALE_DOWN: 0.7,
+        Y_OFFSET: "-15px",
+        TIMING: "0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+      },
+      PHYSICS: {
+        AGENT_COUNT: 40,
+        MAX_SPEED: 2,
+        MAX_FORCE: 0.05,
+      },
+    },
 
-        /* === Private GEMs (Local Prompts Extension) === */
-        CUSTOM_GEMS:[
-            { id: 'gem-translator', icon: '🌐', title: 'Translator (zh-TW)', desc: '繁中翻譯', prompt: 'Please translate the following text into elegant Traditional Chinese. Ensure it retains professional terminology and natural phrasing:\n\n' },
-            { id: 'gem-standard-llm', icon: '🤖', title: '標準化語言模型決策器', desc: '整合 FFC、SCQA、STAR、PREP 等 12 項核心表達模型的最佳化決策策略', prompt: '請依據情境選用最佳化決策策略回應。工具庫包含：1.FFC（感受/事實/期待）；2.SCQA（情境/衝突/問題/答案）；3.STAR（情境/任務/行動/結果）；4.FIRE（事實/解讀/反應/結果）；5.PREP（觀點/理由/例子/重述）；6.RIDE（風險/利益/差異/影響）；7.SCRTV（情境/衝突/原因/策略/價值）；8.FAB模型（Function/Advantages/Benefit）；9.六頂思考帽子與無權重決策矩陣表格；10.第一性原理+費曼總結+表格+Mermaid；11.競品分析「3層漏斗機制」（概念層/邏輯層/系統層Mermaid）；12.多模態推理框架（CoT+ReAct+ToT+自一致性）。\n\n【特殊觸發字】末尾帶「66」用項目9；「==」用項目12；「--」或「—」用項目10；「33」用項目11。\n\n【回覆約束】\n1. 直奔核心，說明選用模型，組合成自然、親切且專業的文字。\n2. 嚴禁 AI 煽情、客套、贅詞、生硬感。\n3. 避免過度使用連接詞，禁用邏輯鏈（首先、其次、最後、此外、因此、由此可見、確實、事實上）、總結詞（綜上所述、總的來說、顯而易見）、絕對化表達（完美方案、徹底解決、確保、以確保、全方位保障）。\n4. Mermaid 圖表內換行符 \\n 必須替換為 <br>，且行末不得有 <br>。\n\n' },
-            { id: 'gem-text-proofreader', icon: '✍️', title: '首席校稿總編輯', desc: '修正台灣繁體錯別字、語言癌與 AI 腔，輸出出版級文本', prompt: '請扮演 Google DeepMind 首席中文語言學家兼台灣資深出版總編輯。基於「精簡、精確、信達雅」原則，針對提供的文本進行深度校對與潤飾，嚴格執行以下流程：\n\n【校對標準】\n1. 錯誤偵測：修正形近/音近字，嚴格區分「的、得、地」，標點符號一律改為全形並符合教育部規範（禁用波浪號 ~）。\n2. 消除語言癌：刪除冗贅動詞（如「進行一個...的動作」改為直接動詞）與口語填充字（做一個...的部分、基本上、其實、那）。\n3. 去除 AI 味：禁用破折號補充說明（改用逗號/句號），拒絕油膩排比句與西式被動語態（改為主動語態）。\n4. 邏輯風格優化：長句適當斷句，遵守「最小干預原則」，保持原作者語氣。\n\n【負向約束】嚴禁說教與客套話，不輸出「身為語言模型...}」等語句。保持事實，不捏造數據。\n\n【輸出格式】\n### 第一部分：修訂對照表 (Markdown Table)\n| 原文 | 修改後 | 修改原因 (標註：錯字、語言癌、標點、語氣潤飾) |\n| :--- | :--- | :--- |\n### 第二部分：校對後全文\n\n' },
-            { id: 'gem-industrial-architect', icon: '💻', title: '工控代碼架構師', desc: '專精 C#、C++、Python 工控系統、多執行緒優化與資源治理的架構指南', prompt: '請扮演 C#、C++、Python 專業代碼架構師。依序代碼順序選用：C# > C++。遵循四大原則：1.動手前思考（明確假設、拒絕模糊）；2.至簡至上（無預期功能與多餘抽象）；3.精確微創修改（不修相鄰無損代碼，符合既有風格）；4.目標驅動執行（建立 IMPLEMENTATION_PLAN.md、編寫測試、驗證邊界）。\n\n【架構與優化範疇】\n1. 效能調優與資源治理：使用語言原生 Profiler 分析 Spot，設計 Lock-free 結構、TPL 多執行緒優化或 OpenMP 並行計算；嚴格執行資源釋放（C# Dispose, C++ RAII）與 GC 治理（ pause ≤ 200ms）。\n2. 單元測試：覆蓋正負向、邊界（Null、極值）與高併發壓力測試，確保核心邏輯覆蓋率 ≥ 80%。\n3. 錯誤診斷：依循 [問題定位] → [根因分析] → [修復方案] → [驗證方法] 輸出。\n4. 架構重構：繪製 Mermaid 模組圖，降低圈複雜度 ≥ 40%，提升響應速度 ≥ 30%。\n\n' },
-            { id: 'gem-debugger', icon: '🐛', title: 'Bug Hunter', desc: '根本原因分析與BUG修復', prompt: 'Act as a senior debugging engineer. Analyze the following error log or buggy code, determine the root cause step-by-step, and propose a robust fix:\n\n' },
-            { id: 'gem-coder', icon: '💻', title: 'Senior Developer', desc: '程式碼審查和優化', prompt: 'As a Senior Developer, please review the following requirements/code. Focus on performance, security, and industrial-grade practices:\n\n' },
-            { id: 'gem-weightlifting-biomechanics', icon: '🏋️‍♂️', title: '舉重生物力學分析系統', desc: '抓舉與挺舉的運動學數據提取、逐幀分析與第一性原理技術修正', prompt: '請扮演奧林匹克舉重（抓舉/挺舉）生物力學分析專家系統。請依據輸入參數（動作項目、影片幀率、專注核心）對影像進行動態學數據提取，並依專業標準提供技術修正方案。本系統一律以繁體中文回覆，且必須大量運用商業級 Mermaid 代碼與多維度數據表格進行深入拆解。\n\n【分析框架與核心指標】\n1. 階段劃分（Phase Segmentation）：\n   - 第一拉引（地面至膝關節）\n   - 第二拉引（膝關節至發力點/伸展）\n   - 第三拉引（發力轉身/下穿至槓下）\n   - 接槓與站起支撐\n2. 評估維度：\n   - 槓頭軌跡（Bar Path）：水平位移量（是否繞槓/微幅環繞）、垂直加速度峰值。\n   - 關節運動學（Joint Kinematics）：最大發力時的髖、膝、踝關節伸展角度。\n   - 步法（Footwork）：雙腳接觸時機與左右/前後位移量。\n   - 質心（COM）：整體動作過程中的重心動態平衡。\n\n【輸出結構與約束】\n1. 數據摘要與逐幀分析：必須使用 Markdown 表格詳列關鍵位置的關節角度與動態參數。\n2. 技術缺失根因分析：運用第一性原理（First Principles）直擊核心錯誤（Root Cause），嚴禁籠統模糊的字眼，全面採用量化描述。\n3. 修正訓練協定：提供具體的針對性輔助訓練動作與教練提示詞（Cues）。\n4. 可視化呈現：必須利用商業級 Mermaid 代碼（如流程圖、時序圖或狀態圖）與多維度表格，呈現各階段關鍵點分析與最終結論。\n\n' },
-            { id: 'gem-4K', icon: '🇰🇰🇰🇰', title: '4K HD', desc: '高清圖片轉換', prompt: '請扮演資深影像處理與數位修復專家，精通計算機視覺、超解析度重建、色彩科學及 PBR 無損影像復原。執行商業級高保真影像資產重製與 4K 無損放大作業，嚴格控管 SSIM 與原圖特徵偏差率於 0%，僅提升微觀細節資訊密度與動態範圍。\n\n【核心工作流】\n1. 幾何與特徵絕對鎖定：解析並鎖定原圖面部結構特徵點、骨骼比例、視線向量、肢體姿態、機位透視及構圖座標，執行 1:1 絕對空間映射。\n2. 物理級微觀紋理增強：運用高頻率細節增強演算法，精確重建毛孔、細紋、髮絲、睫毛、織物纖維（縫線）及材質邊緣，確保 Photorealistic 物理質感。\n3. 光度與色彩空間同步：提取原圖色彩空間、白平衡及光線向量，確保光影對比、強度及 Tone Mapping 完全對齊，僅擴展寬容度與邊緣銳利度。\n\n【否定邊界】\n1. 絕對禁止引入非原圖物理特徵的生成式幻覺（Hallucination）或藝術風格化（Stylization）。\n2. 絕對禁止執行重新佈光（Relighting）、改變幾何形體或變更服裝、毛髮、皮膚與背景之空間位置。\n3. 絕對禁止使用平滑化濾鏡（如過度磨皮、消除自然皮膚紋理）。\n【輸出格式】\n 4K圖片\n\n ' },
-            { id: 'gem-commercial-prompt-engineering', icon: '🎨', title: '商業級高保真影像生成提示詞專家', desc: '基於受控瑕疵美學（Controlled Imperfection）的商業人像與品牌情境生成框架', prompt: '請扮演商業級高保真影像生成提示詞專家，基於「受控瑕疵美學（Controlled Imperfection）」核心概念，產出標準英文格式的影像提示詞，以消除 AI 塑膠感並建立真實皮膚與光學細節。\n\n【核心模組關鍵字庫】\n1. 肌理層（Texture Layer）：Raw photo, hyperrealistic, highly detailed skin texture, visible pores, subtle skin imperfections, authentic skin tone, high frequency details（商業案禁用 freckles，改用 pores 與 texture）。\n2. 光影層（Lighting Layer）：\n   - Studio 時尚：Studio lighting, hard light, rim lighting, volumetric lighting, high contrast, professional photography\n   - 生活抓拍：Natural lighting, side lighting, sunlight casting shadows, dynamic shadows, complex lighting\n   - 創意閃光：Flash photography, direct harsh flash, vignette, night flash\n3. 鏡頭層（Optical Layer）：85mm lens, f/1.8, depth of field, bokeh, film grain, slight chromatic aberration, analog film aesthetic（禁用 motion blur/light leaks，改用 depth of field/bokeh 保持畫面乾淨）。\n\n【組合範本定義】\n- 高階商業人像：Raw photo, close-up portrait, highly detailed skin texture, visible pores, hard studio lighting, rim light, sharp focus on eyes, 85mm lens, f/1.8, depth of field, subtle film grain, 8k resolution, Hasselblad X1D\n- 品牌情境照：Raw photo, candid shot, authentic moment, uneven skin tone, natural side lighting, harsh shadows, film grain, Kodak Portra 400, slightly imperfect composition, realistic texture\n\n【負向提示詞與參數指導】\n- 排除詞：smooth skin, plastic skin, airbrushed, cartoon, anime, 3d render, global illumination, flat lighting, overexposed, bad anatomy, blurry, low quality\n- 參數基準：CFG Scale: 4.0（提升自然度、防油膩）；Steps: 30（確保紋理迭代）；Denoising Strength (Img2Img/Inpainting): 0.35（保留原圖特徵並增強細節）。\n\n' },
-            { id: 'gem-refactor', icon: '🔨', title: 'Refactoring Master', desc: '清理、優化和現代化程式碼', prompt: 'Analyze the following code. Refactor it to improve readability, maintainability, and reduce cyclomatic complexity without changing its outward behavior. Use modern best practices:\n\n' },
-            { id: 'gem-ux', icon: '🎨', title: 'UX/UI Designer', desc: '介面與可用性評估', prompt: 'From a UX/UI perspective, please analyze the following concept for usability, accessibility, and modern design metrics. Suggest concrete improvements:\n\n' },
-            { id: 'gem-writer', icon: '📝', title: 'Tech Writer', desc: '專業文件撰寫', prompt: 'Act as an expert technical writer. Create clear, concise, and professional documentation (e.g., README, API doc) for the following:\n\n' },
-            { id: 'gem-regex', icon: '🔍', title: 'Regex Expert', desc: 'Regex Gexplain', prompt: 'Generate a robust regular expression for the following requirement. Provide a clear breakdown of how the regex works and provide test cases:\n\n' },
-        ]
-    };
+    /* === Private GEMs (Local Prompts Extension) === */
+    CUSTOM_GEMS: [
+      {
+        id: "gem-translator",
+        icon: "🌐",
+        title: "Translator (zh-TW)",
+        desc: "繁中翻譯",
+        prompt:
+          "Please translate the following text into elegant Traditional Chinese. Ensure it retains professional terminology and natural phrasing:\n\n",
+      },
+      {
+        id: "gem-standard-llm",
+        icon: "🤖",
+        title: "標準化語言模型決策器",
+        desc: "整合 FFC、SCQA、STAR、PREP 等 12 項核心表達模型的最佳化決策策略",
+        prompt:
+          "請依據情境選用最佳化決策策略回應。工具庫包含：1.FFC（感受/事實/期待）；2.SCQA（情境/衝突/問題/答案）；3.STAR（情境/任務/行動/結果）；4.FIRE（事實/解讀/反應/結果）；5.PREP（觀點/理由/例子/重述）；6.RIDE（風險/利益/差異/影響）；7.SCRTV（情境/衝突/原因/策略/價值）；8.FAB模型（Function/Advantages/Benefit）；9.六頂思考帽子與無權重決策矩陣表格；10.第一性原理+費曼總結+表格+Mermaid；11.競品分析「3層漏斗機制」（概念層/邏輯層/系統層Mermaid）；12.多模態推理框架（CoT+ReAct+ToT+自一致性）。\n\n【特殊觸發字】末尾帶「66」用項目9；「==」用項目12；「--」或「—」用項目10；「33」用項目11。\n\n【回覆約束】\n1. 直奔核心，說明選用模型，組合成自然、親切且專業的文字。\n2. 嚴禁 AI 煽情、客套、贅詞、生硬感。\n3. 避免過度使用連接詞，禁用邏輯鏈（首先、其次、最後、此外、因此、由此可見、確實、事實上）、總結詞（綜上所述、總的來說、顯而易見）、絕對化表達（完美方案、徹底解決、確保、以確保、全方位保障）。\n4. Mermaid 圖表內換行符 \\n 必須替換為 <br>，且行末不得有 <br>。\n\n",
+      },
+      {
+        id: "gem-text-proofreader",
+        icon: "✍️",
+        title: "首席校稿總編輯",
+        desc: "修正台灣繁體錯別字、語言癌與 AI 腔，輸出出版級文本",
+        prompt:
+          "請扮演 Google DeepMind 首席中文語言學家兼台灣資深出版總編輯。基於「精簡、精確、信達雅」原則，針對提供的文本進行深度校對與潤飾，嚴格執行以下流程：\n\n【校對標準】\n1. 錯誤偵測：修正形近/音近字，嚴格區分「的、得、地」，標點符號一律改為全形並符合教育部規範（禁用波浪號 ~）。\n2. 消除語言癌：刪除冗贅動詞（如「進行一個...的動作」改為直接動詞）與口語填充字（做一個...的部分、基本上、其實、那）。\n3. 去除 AI 味：禁用破折號補充說明（改用逗號/句號），拒絕油膩排比句與西式被動語態（改為主動語態）。\n4. 邏輯風格優化：長句適當斷句，遵守「最小干預原則」，保持原作者語氣。\n\n【負向約束】嚴禁說教與客套話，不輸出「身為語言模型...}」等語句。保持事實，不捏造數據。\n\n【輸出格式】\n### 第一部分：修訂對照表 (Markdown Table)\n| 原文 | 修改後 | 修改原因 (標註：錯字、語言癌、標點、語氣潤飾) |\n| :--- | :--- | :--- |\n### 第二部分：校對後全文\n\n",
+      },
+      {
+        id: "gem-industrial-architect",
+        icon: "💻",
+        title: "工控代碼架構師",
+        desc: "專精 C#、C++、Python 工控系統、多執行緒優化與資源治理的架構指南",
+        prompt:
+          "請扮演 C#、C++、Python 專業代碼架構師。依序代碼順序選用：C# > C++。遵循四大原則：1.動手前思考（明確假設、拒絕模糊）；2.至簡至上（無預期功能與多餘抽象）；3.精確微創修改（不修相鄰無損代碼，符合既有風格）；4.目標驅動執行（建立 IMPLEMENTATION_PLAN.md、編寫測試、驗證邊界）。\n\n【架構與優化範疇】\n1. 效能調優與資源治理：使用語言原生 Profiler 分析 Spot，設計 Lock-free 結構、TPL 多執行緒優化或 OpenMP 並行計算；嚴格執行資源釋放（C# Dispose, C++ RAII）與 GC 治理（ pause ≤ 200ms）。\n2. 單元測試：覆蓋正負向、邊界（Null、極值）與高併發壓力測試，確保核心邏輯覆蓋率 ≥ 80%。\n3. 錯誤診斷：依循 [問題定位] → [根因分析] → [修復方案] → [驗證方法] 輸出。\n4. 架構重構：繪製 Mermaid 模組圖，降低圈複雜度 ≥ 40%，提升響應速度 ≥ 30%。\n\n",
+      },
+      {
+        id: "gem-debugger",
+        icon: "🐛",
+        title: "Bug Hunter",
+        desc: "根本原因分析與BUG修復",
+        prompt:
+          "Act as a senior debugging engineer. Analyze the following error log or buggy code, determine the root cause step-by-step, and propose a robust fix:\n\n",
+      },
+      {
+        id: "gem-coder",
+        icon: "💻",
+        title: "Senior Developer",
+        desc: "程式碼審查和優化",
+        prompt:
+          "As a Senior Developer, please review the following requirements/code. Focus on performance, security, and industrial-grade practices:\n\n",
+      },
+      {
+        id: "gem-weightlifting-biomechanics",
+        icon: "🏋️‍♂️",
+        title: "舉重生物力學分析系統",
+        desc: "抓舉與挺舉的運動學數據提取、逐幀分析與第一性原理技術修正",
+        prompt:
+          "請扮演奧林匹克舉重（抓舉/挺舉）生物力學分析專家系統。請依據輸入參數（動作項目、影片幀率、專注核心）對影像進行動態學數據提取，並依專業標準提供技術修正方案。本系統一律以繁體中文回覆，且必須大量運用商業級 Mermaid 代碼與多維度數據表格進行深入拆解。\n\n【分析框架與核心指標】\n1. 階段劃分（Phase Segmentation）：\n   - 第一拉引（地面至膝關節）\n   - 第二拉引（膝關節至發力點/伸展）\n   - 第三拉引（發力轉身/下穿至槓下）\n   - 接槓與站起支撐\n2. 評估維度：\n   - 槓頭軌跡（Bar Path）：水平位移量（是否繞槓/微幅環繞）、垂直加速度峰值。\n   - 關節運動學（Joint Kinematics）：最大發力時的髖、膝、踝關節伸展角度。\n   - 步法（Footwork）：雙腳接觸時機與左右/前後位移量。\n   - 質心（COM）：整體動作過程中的重心動態平衡。\n\n【輸出結構與約束】\n1. 數據摘要與逐幀分析：必須使用 Markdown 表格詳列關鍵位置的關節角度與動態參數。\n2. 技術缺失根因分析：運用第一性原理（First Principles）直擊核心錯誤（Root Cause），嚴禁籠統模糊的字眼，全面採用量化描述。\n3. 修正訓練協定：提供具體的針對性輔助訓練動作與教練提示詞（Cues）。\n4. 可視化呈現：必須利用商業級 Mermaid 代碼（如流程圖、時序圖或狀態圖）與多維度表格，呈現各階段關鍵點分析與最終結論。\n\n",
+      },
+      {
+        id: "gem-4K",
+        icon: "🇰🇰🇰🇰",
+        title: "4K HD",
+        desc: "高清圖片轉換",
+        prompt:
+          "請扮演資深影像處理與數位修復專家，精通計算機視覺、超解析度重建、色彩科學及 PBR 無損影像復原。執行商業級高保真影像資產重製與 4K 無損放大作業，嚴格控管 SSIM 與原圖特徵偏差率於 0%，僅提升微觀細節資訊密度與動態範圍。\n\n【核心工作流】\n1. 幾何與特徵絕對鎖定：解析並鎖定原圖面部結構特徵點、骨骼比例、視線向量、肢體姿態、機位透視及構圖座標，執行 1:1 絕對空間映射。\n2. 物理級微觀紋理增強：運用高頻率細節增強演算法，精確重建毛孔、細紋、髮絲、睫毛、織物纖維（縫線）及材質邊緣，確保 Photorealistic 物理質感。\n3. 光度與色彩空間同步：提取原圖色彩空間、白平衡及光線向量，確保光影對比、強度及 Tone Mapping 完全對齊，僅擴展寬容度與邊緣銳利度。\n\n【否定邊界】\n1. 絕對禁止引入非原圖物理特徵的生成式幻覺（Hallucination）或藝術風格化（Stylization）。\n2. 絕對禁止執行重新佈光（Relighting）、改變幾何形體或變更服裝、毛髮、皮膚與背景之空間位置。\n3. 絕對禁止使用平滑化濾鏡（如過度磨皮、消除自然皮膚紋理）。\n【輸出格式】\n 4K圖片\n\n ",
+      },
+      {
+        id: "gem-commercial-prompt-engineering",
+        icon: "🎨",
+        title: "商業級高保真影像生成提示詞專家",
+        desc: "基於受控瑕疵美學（Controlled Imperfection）的商業人像與品牌情境生成框架",
+        prompt:
+          "請扮演商業級高保真影像生成提示詞專家，基於「受控瑕疵美學（Controlled Imperfection）」核心概念，產出標準英文格式的影像提示詞，以消除 AI 塑膠感並建立真實皮膚與光學細節。\n\n【核心模組關鍵字庫】\n1. 肌理層（Texture Layer）：Raw photo, hyperrealistic, highly detailed skin texture, visible pores, subtle skin imperfections, authentic skin tone, high frequency details（商業案禁用 freckles，改用 pores 與 texture）。\n2. 光影層（Lighting Layer）：\n   - Studio 時尚：Studio lighting, hard light, rim lighting, volumetric lighting, high contrast, professional photography\n   - 生活抓拍：Natural lighting, side lighting, sunlight casting shadows, dynamic shadows, complex lighting\n   - 創意閃光：Flash photography, direct harsh flash, vignette, night flash\n3. 鏡頭層（Optical Layer）：85mm lens, f/1.8, depth of field, bokeh, film grain, slight chromatic aberration, analog film aesthetic（禁用 motion blur/light leaks，改用 depth of field/bokeh 保持畫面乾淨）。\n\n【組合範本定義】\n- 高階商業人像：Raw photo, close-up portrait, highly detailed skin texture, visible pores, hard studio lighting, rim light, sharp focus on eyes, 85mm lens, f/1.8, depth of field, subtle film grain, 8k resolution, Hasselblad X1D\n- 品牌情境照：Raw photo, candid shot, authentic moment, uneven skin tone, natural side lighting, harsh shadows, film grain, Kodak Portra 400, slightly imperfect composition, realistic texture\n\n【負向提示詞與參數指導】\n- 排除詞：smooth skin, plastic skin, airbrushed, cartoon, anime, 3d render, global illumination, flat lighting, overexposed, bad anatomy, blurry, low quality\n- 參數基準：CFG Scale: 4.0（提升自然度、防油膩）；Steps: 30（確保紋理迭代）；Denoising Strength (Img2Img/Inpainting): 0.35（保留原圖特徵並增強細節）。\n\n",
+      },
+      {
+        id: "gem-refactor",
+        icon: "🔨",
+        title: "Refactoring Master",
+        desc: "清理、優化和現代化程式碼",
+        prompt:
+          "Analyze the following code. Refactor it to improve readability, maintainability, and reduce cyclomatic complexity without changing its outward behavior. Use modern best practices:\n\n",
+      },
+      {
+        id: "gem-ux",
+        icon: "🎨",
+        title: "UX/UI Designer",
+        desc: "介面與可用性評估",
+        prompt:
+          "From a UX/UI perspective, please analyze the following concept for usability, accessibility, and modern design metrics. Suggest concrete improvements:\n\n",
+      },
+      {
+        id: "gem-writer",
+        icon: "📝",
+        title: "Tech Writer",
+        desc: "專業文件撰寫",
+        prompt:
+          "Act as an expert technical writer. Create clear, concise, and professional documentation (e.g., README, API doc) for the following:\n\n",
+      },
+      {
+        id: "gem-regex",
+        icon: "🔍",
+        title: "Regex Expert",
+        desc: "Regex Gexplain",
+        prompt:
+          "Generate a robust regular expression for the following requirement. Provide a clear breakdown of how the regex works and provide test cases:\n\n",
+      },
+    ],
+  };
 
-    const log = (...args) => CONFIG.DEBUG && console.log('[Gemini v6.0]', ...args);
+  const log = (...args) =>
+    CONFIG.DEBUG && console.log("[Gemini v6.0]", ...args);
 
-    /* --- § 1. Trusted Types Initialization --- */
-    (function initTrustedTypes() {
-        if (window.trustedTypes && window.trustedTypes.createPolicy) {
-            try {
-                if (!window.trustedTypes.defaultPolicy) {
-                    window.trustedTypes.createPolicy('default', {
-                        createHTML:      s => s,
-                        createScript:    s => s,
-                        createScriptURL: s => s
-                    });
-                }
-            } catch (e) {
-                log('Trusted Types default policy warning:', e);
-            }
+  /* --- § 1. Trusted Types Initialization --- */
+  (function initTrustedTypes() {
+    if (window.trustedTypes && window.trustedTypes.createPolicy) {
+      try {
+        if (!window.trustedTypes.defaultPolicy) {
+          window.trustedTypes.createPolicy("default", {
+            createHTML: (s) => s,
+            createScript: (s) => s,
+            createScriptURL: (s) => s,
+          });
         }
-    })();
-
-    let _trustedPolicy;
-    function getTrustedPolicy() {
-        if (_trustedPolicy) return _trustedPolicy;
-        if (window.trustedTypes && window.trustedTypes.createPolicy) {
-            try {
-                _trustedPolicy = window.trustedTypes.createPolicy('gemini-unified-v5', {
-                    createHTML:      s => s,
-                    createScript:    s => s,
-                    createScriptURL: s => s
-                });
-            } catch (e) {
-                _trustedPolicy = (window.trustedTypes && window.trustedTypes.defaultPolicy) || null;
-            }
-        }
-        return _trustedPolicy;
+      } catch (e) {
+        log("Trusted Types default policy warning:", e);
+      }
     }
+  })();
 
-    function safeSetHTML(el, html) {
-        const p = getTrustedPolicy();
-        el.innerHTML = p ? p.createHTML(html) : html;
+  let _trustedPolicy;
+  function getTrustedPolicy() {
+    if (_trustedPolicy) return _trustedPolicy;
+    if (window.trustedTypes && window.trustedTypes.createPolicy) {
+      try {
+        _trustedPolicy = window.trustedTypes.createPolicy("gemini-unified-v5", {
+          createHTML: (s) => s,
+          createScript: (s) => s,
+          createScriptURL: (s) => s,
+        });
+      } catch (e) {
+        _trustedPolicy =
+          (window.trustedTypes && window.trustedTypes.defaultPolicy) || null;
+      }
     }
+    return _trustedPolicy;
+  }
 
-    /* --- § 2. CSS Injection (Themes & Component Styles) --- */
-    const CSS_MAIN = `
+  function safeSetHTML(el, html) {
+    const p = getTrustedPolicy();
+    el.innerHTML = p ? p.createHTML(html) : html;
+  }
+
+  /* --- § 2. CSS Injection (Themes & Component Styles) --- */
+  const CSS_MAIN = `
     /* ── 全域變量 ── */
     :root {
         --bg-primary:   #1d2021;
@@ -559,21 +657,60 @@
     @keyframes geminiSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
     .gemini-ios-badge         { background: rgba(16,185,129,0.2); padding: 4px 10px; border-radius: 12px; font-size: 11px; border: 1px solid rgba(16,185,129,0.4); color: #10B981; }
 
-    /* ── 手機版代碼區塊縮小 (iOS/Mobile UI Size Reduction) ── */
-    @media (max-width: 768px) {
-        pre {
-            padding: 0.2rem !important;
-            font-size: 0.2rem !important;
-            border-radius: 0.1rem !important;
-        }
-        code { font-size: 0.2rem !important; }
-        :not(pre) > code { font-size: 0.2em !important; padding: 0.03em 0.1em !important; }
-        .tm-action-btn { padding: 0.08rem 0.5rem !important; font-size: 0.2rem !important; }
-        .tm-action-btn svg { width: 0.25rem; height: 0.25rem; }
-        .tm-code-container-collapsed { max-height: 3.4rem !important; }
-        .tm-overlay { top: 0.08rem !important; right: 0.08rem !important; }
+/* ── 手機版代碼區塊優化 (流暢彈性佈局) ── */
+@media (max-width: 48em) { /* 768px / 16px = 48em */
+
+    pre {
+        padding: 0em;
+        font-size: 0.4rem;
+        line-height: 0.8;
+        border-radius: 0.375rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
+    code {
+        font-size: 0.4em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* 行內程式碼：寬度與內距隨文字流動 */
+    :not(pre) > code {
+        font-size: 0.9em;
+        padding: 0.2em 0.4em;
+        border-radius: 0.25em;
+    }
+
+    /* 操作按鈕：確保符合 Apple 44x44 pt 與 Google 48x48 dp 最低觸控熱區 */
+    .tm-action-btn {
+        padding: 0 em;
+        font-size: 0.4rem;
+        min-width: 2.0rem;
+        min-height: 2.0rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    /* 圖標：大小與文字按鈕等比例同步 */
+    .tm-action-btn svg {
+        width: 1.25em;
+        height: 1.25em;
+    }
+
+    /* 摺疊容器：改用 ch (字元寬度) 或 ex 單位限定高度，精準控制呈現行數 */
+    .tm-code-container-collapsed {
+        /* 1.5行高 * 6行 = 9em，加上上下 padding 2em，共 11em */
+        max-height: 11em;
+    }
+
+    /* 覆蓋層位置：隨容器間距動態對齊 */
+    .tm-overlay {
+        top: 0.5em;
+        right: 0.5em;
+    }
+}
     /* ── § 附加優化：輸入框動態縮放 (Progressive Disclosure) ── */
     /* 鎖定 Gemini 核心輸入容器 */
     .ds-chat-input-container, rich-textarea, .chat-input-container {
@@ -794,7 +931,7 @@
     }
 
     /* Hide all actual children inside the capsule */
-    .gemini-ui-collapsed > * {
+    .gemini-ui-collapsed > *:not(.gemini-ui-stop-overlay) {
         opacity: 0 !important;
         pointer-events: none !important;
         position: absolute !important;
@@ -905,6 +1042,102 @@
             border-color: var(--accent-yellow) !important;
         }
     }
+
+        /* === 多輪對話排版優化 (Multi-turn Chat Bubble Layout) === */
+    /* 確保對話容器滿版並能容納 flex 對齊 */
+    conversation-message,
+    .conversation-message,
+    message-row,
+    .message-row {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+
+    /* 使用者輸入靠右、自適應寬度 */
+    user-query,
+    .user-query {
+        align-self: flex-end !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        max-width: 80% !important;
+        width: fit-content !important;
+    }
+
+    /* 變更原生氣泡背景為統一色票 */
+    .enable-luminous-prompt-bubble .user-query-bubble-with-background:not(.edit-mode),
+    .user-query-bubble-with-background:not(.edit-mode) {
+        background: var(--bg-tertiary) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid rgba(250, 189, 47, 0.2) !important; /* accent-yellow 帶透明度 */
+    }
+
+    /* 確保使用者氣泡內的文字排版正確 */
+    user-query .content,
+    .user-query .content,
+    user-query .text,
+    .user-query .text {
+        text-align: left !important; /* 文字本身保持靠左對齊，方便閱讀 */
+    }
+
+    /* AI 回應 (Model Response) 靠左、展開至容器寬度 */
+    model-response,
+    .model-response-text,
+    .model-message {
+        align-self: flex-start !important;
+        margin-right: auto !important;
+        margin-left: 0 !important;
+        width: 100% !important; /* 確保展開到整個容器寬度 */
+        max-width: 100% !important;
+        background: transparent !important;
+        border-radius: 4px 20px 20px 20px !important;
+    }
+
+    @media (max-width: 768px) {
+        user-query, .user-query {
+            max-width: 95% !important;
+        }
+    }
+
+
+    /* ── 對話邊界分隔線 (Chat Boundary Divider) ── */
+.tm-chat-divider {
+    width: 100%;
+    margin: 1.5rem 0; /* 縮減間距，維持聊天流暢度 */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    clear: both;
+    user-select: none;
+}
+
+.tm-chat-divider::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    /* 調整顏色階梯，強化窄螢幕適配度 */
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(250, 189, 47, 0.15) 15%,
+        rgba(250, 189, 47, 0.45) 50%,
+        rgba(250, 189, 47, 0.15) 85%,
+        transparent 100%
+    );
+}
+
+.tm-chat-divider::after {
+    content: '◆ ◆ ◆ ◆ ◆ ◆ ◆'; /* 工業風分隔符號 */
+    position: relative;
+    color: var(--accent-yellow, #fabd2f);
+    font-size: 0.85rem; /* 加大字型符合無障礙規範最低視覺標準 */
+    opacity: 0.85; /* 提升對比度，確保可視性 */
+    padding: 0 16px;
+    letter-spacing: 0.25rem; /* 緊湊化符號間距 */
+    text-shadow: 0 0 6px rgba(250, 189, 47, 0.4); /* 強化微發光質感 */
+}
 
     /* === v6.0 Industrial UX: Micro-interactions & Animations === */
     /* 按鈕微互動：點擊漣漪效果 */
@@ -1088,188 +1321,265 @@
     .gemini-csv-button { background: linear-gradient(135deg,#F59E0B 0%,#D97706 100%); }
     `;
 
-    if (typeof GM_addStyle !== 'undefined') {
-        GM_addStyle(CSS_MAIN);
-    } else {
-        const s = document.createElement('style');
-        s.textContent = CSS_MAIN;
-        (document.head || document.documentElement).appendChild(s);
-    }
+  if (typeof GM_addStyle !== "undefined") {
+    GM_addStyle(CSS_MAIN);
+  } else {
+    const s = document.createElement("style");
+    s.textContent = CSS_MAIN;
+    (document.head || document.documentElement).appendChild(s);
+  }
 
-    /* --- § 資源依賴管理器 --- */
-    const DependencyManager = {
-        _markedModule: null,
-        async loadMarked() {
-            if (this._markedModule) return this._markedModule;
-            if (window.marked) {
-                this._markedModule = window.marked;
-                return window.marked;
-            }
+  /* --- § 資源依賴管理器 --- */
+  const DependencyManager = {
+    _markedModule: null,
+    async loadMarked() {
+      if (this._markedModule) return this._markedModule;
+      if (window.marked) {
+        this._markedModule = window.marked;
+        return window.marked;
+      }
 
-            // Method 1: import
-            try {
-                const mod = await import('https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js');
-                this._markedModule = mod.marked ? mod.marked : mod;
-                return this._markedModule;
-            } catch(e) {
-                console.warn('[Gemini Ultimate] Dynamic import (Method 1) failed:', e);
-            }
+      // Method 1: import
+      try {
+        const mod =
+          await import("https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js");
+        this._markedModule = mod.marked ? mod.marked : mod;
+        return this._markedModule;
+      } catch (e) {
+        console.warn("[Gemini Ultimate] Dynamic import (Method 1) failed:", e);
+      }
 
-            // Method 2: import from esm.sh
-            try {
-                const mod = await import('https://esm.sh/marked');
-                this._markedModule = mod.marked ? mod.marked : mod;
-                return this._markedModule;
-            } catch(e) {
-                console.warn('[Gemini Ultimate] Dynamic import (Method 2) failed:', e);
-            }
+      // Method 2: import from esm.sh
+      try {
+        const mod = await import("https://esm.sh/marked");
+        this._markedModule = mod.marked ? mod.marked : mod;
+        return this._markedModule;
+      } catch (e) {
+        console.warn("[Gemini Ultimate] Dynamic import (Method 2) failed:", e);
+      }
 
-            // Method 3: Script Injection / Polyfill via fetchResource and new Function
-            try {
-                const code = await fetchResource('https://cdn.jsdelivr.net/npm/marked/marked.min.js', 'GET', null, 'text');
-                const p = getTrustedPolicy();
-                const safeCode = p ? p.createScript(code + ';\nwindow.marked = marked;') : (code + ';\nwindow.marked = marked;');
+      // Method 3: Script Injection / Polyfill via fetchResource and new Function
+      try {
+        const code = await fetchResource(
+          "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
+          "GET",
+          null,
+          "text",
+        );
+        const p = getTrustedPolicy();
+        const safeCode = p
+          ? p.createScript(code + ";\nwindow.marked = marked;")
+          : code + ";\nwindow.marked = marked;";
 
-                const script = document.createElement('script');
-                // try to copy nonce to bypass strict CSP if possible
-                const existingScript = document.querySelector('script[nonce]');
-                if (existingScript) script.setAttribute('nonce', existingScript.getAttribute('nonce'));
-                script.textContent = safeCode;
-                document.head.appendChild(script);
+        const script = document.createElement("script");
+        // try to copy nonce to bypass strict CSP if possible
+        const existingScript = document.querySelector("script[nonce]");
+        if (existingScript)
+          script.setAttribute("nonce", existingScript.getAttribute("nonce"));
+        script.textContent = safeCode;
+        document.head.appendChild(script);
 
-                if (window.marked) {
-                    this._markedModule = window.marked;
-                    return window.marked;
-                }
-            } catch(e) {
-                console.warn('[Gemini Ultimate] Fallback Script injection failed:', e);
-            }
+        if (window.marked) {
+          this._markedModule = window.marked;
+          return window.marked;
+        }
+      } catch (e) {
+        console.warn("[Gemini Ultimate] Fallback Script injection failed:", e);
+      }
 
-            throw new Error('Marked.js 載入失敗 (Content Security Policy 或網路阻擋)。你可以透過 @require 引入以解決此問題。');
+      throw new Error(
+        "Marked.js 載入失敗 (Content Security Policy 或網路阻擋)。你可以透過 @require 引入以解決此問題。",
+      );
+    },
+    /* 工業級 CSV 解析 (RFC 4180 相容) */
+    parseCSV(text) {
+      const result = [];
+      let row = [],
+        inQuotes = false,
+        val = "";
+      for (let i = 0; i < text.length; i++) {
+        let c = text[i],
+          next = text[i + 1];
+        if (c === '"' && inQuotes && next === '"') {
+          val += '"';
+          i++;
+        } // 雙引號跳脫
+        else if (c === '"') {
+          inQuotes = !inQuotes;
+        } else if (c === "," && !inQuotes) {
+          row.push(val);
+          val = "";
+        } else if (c === "\n" && !inQuotes) {
+          row.push(val);
+          result.push(row);
+          row = [];
+          val = "";
+        } else if (c !== "\r") {
+          val += c;
+        }
+      }
+      row.push(val);
+      result.push(row);
+      return result.filter((r) => r.join("").trim() !== ""); // 過濾空行
+    },
+  };
+
+  // ============================================
+  // 資源獲取函數
+  // ============================================
+  function fetchResource(
+    url,
+    method = "GET",
+    data = null,
+    responseType = "text",
+    retryCount = 0,
+  ) {
+    return new Promise((resolve, reject) => {
+      const headers = {
+        "User-Agent": CONFIG.USER_AGENT,
+        Accept:
+          responseType === "blob"
+            ? "image/*"
+            : "application/json, text/plain, */*",
+        "Cache-Control": "no-cache",
+      };
+      if (method === "POST" && data)
+        headers["Content-Type"] = "text/plain;charset=UTF-8";
+
+      GM_xmlhttpRequest({
+        method,
+        url,
+        data,
+        responseType,
+        headers,
+        timeout: CONFIG.REQUEST_TIMEOUT,
+        anonymous: true,
+        onload: (res) => {
+          if (res.status >= 200 && res.status < 300) {
+            resolve(responseType === "blob" ? res.response : res.responseText);
+          } else {
+            reject(new Error(`HTTP ${res.status}`));
+          }
         },
-        /* 工業級 CSV 解析 (RFC 4180 相容) */
-        parseCSV(text) {
-            const result = [];
-            let row = [], inQuotes = false, val = '';
-            for (let i = 0; i < text.length; i++) {
-                let c = text[i], next = text[i+1];
-                if (c === '"' && inQuotes && next === '"') { val += '"'; i++; } // 雙引號跳脫
-                else if (c === '"') { inQuotes = !inQuotes; }
-                else if (c === ',' && !inQuotes) { row.push(val); val = ''; }
-                else if (c === '\n' && !inQuotes) { row.push(val); result.push(row); row = []; val = ''; }
-                else if (c !== '\r') { val += c; }
-            }
-            row.push(val); result.push(row);
-            return result.filter(r => r.join('').trim() !== ''); // 過濾空行
-        }
-    };
+        onerror: () => {
+          if (retryCount < CONFIG.MAX_RETRIES) {
+            setTimeout(
+              () =>
+                fetchResource(url, method, data, responseType, retryCount + 1)
+                  .then(resolve)
+                  .catch(reject),
+              CONFIG.RETRY_DELAY * (retryCount + 1),
+            );
+          } else {
+            reject(new Error("網路錯誤"));
+          }
+        },
+        ontimeout: () => reject(new Error("請求超時")),
+      });
+    });
+  }
 
-    // ============================================
-    // 資源獲取函數
-    // ============================================
-    function fetchResource(url, method = 'GET', data = null, responseType = 'text', retryCount = 0) {
-        return new Promise((resolve, reject) => {
-            const headers = {
-                'User-Agent': CONFIG.USER_AGENT,
-                'Accept': responseType === 'blob' ? 'image/*' : 'application/json, text/plain, */*',
-                'Cache-Control': 'no-cache'
-            };
-            if (method === 'POST' && data) headers['Content-Type'] = 'text/plain;charset=UTF-8';
-
-            GM_xmlhttpRequest({
-                method, url, data, responseType, headers,
-                timeout: CONFIG.REQUEST_TIMEOUT,
-                anonymous: true,
-                onload: res => {
-                    if (res.status >= 200 && res.status < 300) {
-                        resolve(responseType === 'blob' ? res.response : res.responseText);
-                    } else {
-                        reject(new Error(`HTTP ${res.status}`));
-                    }
-                },
-                onerror: () => {
-                    if (retryCount < CONFIG.MAX_RETRIES) {
-                        setTimeout(() =>
-                            fetchResource(url, method, data, responseType, retryCount + 1).then(resolve).catch(reject),
-                            CONFIG.RETRY_DELAY * (retryCount + 1)
-                        );
-                    } else {
-                        reject(new Error('網路錯誤'));
-                    }
-                },
-                ontimeout: () => reject(new Error('請求超時'))
-            });
-        });
-    }
-
-    /* --- § 4. Mermaid Detection & Preprocessing --- */
-    const MERMAID_KEYWORDS = [
-        'C4Context','C4Container','classDiagram','erDiagram',
-        'flowchart','gantt','gitGraph','graph','journey',
-        'mindmap','pie','quadrantChart','requirementDiagram',
-        'sequenceDiagram','stateDiagram','timeline','sankey','zenuml'
+  /* --- § 4. Mermaid Detection & Preprocessing --- */
+  const MERMAID_KEYWORDS = [
+    "C4Context",
+    "C4Container",
+    "classDiagram",
+    "erDiagram",
+    "flowchart",
+    "gantt",
+    "gitGraph",
+    "graph",
+    "journey",
+    "mindmap",
+    "pie",
+    "quadrantChart",
+    "requirementDiagram",
+    "sequenceDiagram",
+    "stateDiagram",
+    "timeline",
+    "sankey",
+    "zenuml",
+  ];
+  // ============================================
+  // Mermaid 邏輯檢測
+  // ============================================
+  function isMermaidCode(content) {
+    const keywords = [
+      "C4Context",
+      "C4Container",
+      "classDiagram",
+      "erDiagram",
+      "flowchart",
+      "gantt",
+      "gitGraph",
+      "graph",
+      "journey",
+      "mindmap",
+      "pie",
+      "quadrantChart",
+      "requirementDiagram",
+      "sequenceDiagram",
+      "stateDiagram",
+      "timeline",
+      "sankey",
     ];
-        // ============================================
-    // Mermaid 邏輯檢測
-    // ============================================
-    function isMermaidCode(content) {
-        const keywords = [
-            'C4Context', 'C4Container', 'classDiagram', 'erDiagram',
-            'flowchart', 'gantt', 'gitGraph', 'graph', 'journey',
-            'mindmap', 'pie', 'quadrantChart', 'requirementDiagram',
-            'sequenceDiagram', 'stateDiagram', 'timeline', 'sankey'
-        ];
-        const trimmed = content.trim();
-        return keywords.some(k => trimmed.startsWith(k)) || trimmed.startsWith('%%{init:');
+    const trimmed = content.trim();
+    return (
+      keywords.some((k) => trimmed.startsWith(k)) ||
+      trimmed.startsWith("%%{init:")
+    );
+  }
+
+  function preprocessMermaidCode(code) {
+    let processedCode = code.trim();
+    let fixes = [];
+
+    if (
+      processedCode.startsWith("gantt") &&
+      !processedCode.includes("dateFormat")
+    ) {
+      const lines = processedCode.split("\n");
+      lines.splice(1, 0, "    dateFormat YYYY-MM-DD");
+      processedCode = lines.join("\n");
+      fixes.push("添加 dateFormat");
     }
 
+    return { code: processedCode, fixes };
+  }
 
+  /* --- § 5. Generate Interactive Mermaid HTML (srcdoc iframe + CSP Bypass) --- */
 
-    function preprocessMermaidCode(code) {
-        let processedCode = code.trim();
-        let fixes = [];
+  // 全域快取：避免每次點擊都重新下載 1.5MB 的核心庫
+  let _mermaidLibraryCache = null;
 
-        if (processedCode.startsWith('gantt') && !processedCode.includes('dateFormat')) {
-            const lines = processedCode.split('\n');
-            lines.splice(1, 0, '    dateFormat YYYY-MM-DD');
-            processedCode = lines.join('\n');
-            fixes.push('添加 dateFormat');
+  async function ensureMermaidLibrary() {
+    if (_mermaidLibraryCache) return _mermaidLibraryCache;
+    for (const url of CONFIG.MERMAID_CDNS) {
+      try {
+        const code = await fetchResource(url, "GET", null, "text");
+        if (code && code.includes("mermaid")) {
+          _mermaidLibraryCache = code;
+          return code;
         }
-
-        return { code: processedCode, fixes };
+      } catch (e) {
+        log("CDN fetch failed:", url, e);
+      }
     }
+    throw new Error("無法從任何 CDN 載入 Mermaid 核心庫 (請檢查網路規則)");
+  }
 
-    /* --- § 5. Generate Interactive Mermaid HTML (srcdoc iframe + CSP Bypass) --- */
+  // ============================================
+  // Mermaid 互動式 HTML (修復 iOS 版)
+  // ============================================
+  function createStandaloneMermaidHTML(mermaidCode, libCode) {
+    const safeCode = JSON.stringify(mermaidCode);
 
-    // 全域快取：避免每次點擊都重新下載 1.5MB 的核心庫
-    let _mermaidLibraryCache = null;
+    // 將核心庫轉為 inline script 避免 iOS Safari Blob iframe 的跨域存取阻擋
+    const inlineLibHTML = libCode
+      ? `<script>${libCode.replace(/<\/script>/gi, "<\\/script>")}</script>`
+      : "";
 
-    async function ensureMermaidLibrary() {
-        if (_mermaidLibraryCache) return _mermaidLibraryCache;
-        for (const url of CONFIG.MERMAID_CDNS) {
-            try {
-                const code = await fetchResource(url, 'GET', null, 'text');
-                if (code && code.includes('mermaid')) {
-                    _mermaidLibraryCache = code;
-                    return code;
-                }
-            } catch (e) {
-                log('CDN fetch failed:', url, e);
-            }
-        }
-        throw new Error('無法從任何 CDN 載入 Mermaid 核心庫 (請檢查網路規則)');
-    }
-
-    // ============================================
-    // Mermaid 互動式 HTML (修復 iOS 版)
-    // ============================================
-    function createStandaloneMermaidHTML(mermaidCode, libCode) {
-        const safeCode = JSON.stringify(mermaidCode);
-
-        // 將核心庫轉為 inline script 避免 iOS Safari Blob iframe 的跨域存取阻擋
-        const inlineLibHTML = libCode ? `<script>${libCode.replace(/<\/script>/gi, '<\\/script>')}</script>` : '';
-
-        return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -1691,62 +2001,63 @@
     </script>
 </body>
 </html>`;
-    }
+  }
 
-    /* --- § 渲染策略管線 (Renderer Pipeline) --- */
-    const RendererStrategy = {
-        async html(content, container) {
-            // 沿用你原有的 iframe srcdoc/blob 邏輯
-            const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
-            return URL.createObjectURL(blob);
-        },
-        async mermaid(content, container) {
-            // 由於 iOS Safari 對 Blob iframe 的網路存取有嚴格限制，預先下載 Mermaid 核心程式碼
-            let libCode = '';
-            try {
-                libCode = await ensureMermaidLibrary();
-            } catch (e) {
-                console.warn('[Gemini Ultimate] ensureMermaidLibrary failed:', e);
-            }
-            const { code } = preprocessMermaidCode(content);
-            const html = createStandaloneMermaidHTML(code, libCode);
-            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-            return URL.createObjectURL(blob);
-        },
-        async markdown(content, container, previewDiv) {
-            const marked = await DependencyManager.loadMarked();
-            const p = getTrustedPolicy();
-            const rawHtml = marked.parse(content);
-            previewDiv.innerHTML = p ? p.createHTML(rawHtml) : rawHtml;
-            // 觸發表格掃描以套用 UI 優化
-            if (typeof TableOptimizer !== 'undefined') TableOptimizer.scanTables();
-            return 'INLINE';
-        },
-        async csv(content, container, previewDiv) {
-            const rows = DependencyManager.parseCSV(content);
-            if (rows.length === 0) throw new Error('CSV 為空');
+  /* --- § 渲染策略管線 (Renderer Pipeline) --- */
+  const RendererStrategy = {
+    async html(content, container) {
+      // 沿用你原有的 iframe srcdoc/blob 邏輯
+      const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+      return URL.createObjectURL(blob);
+    },
+    async mermaid(content, container) {
+      // 由於 iOS Safari 對 Blob iframe 的網路存取有嚴格限制，預先下載 Mermaid 核心程式碼
+      let libCode = "";
+      try {
+        libCode = await ensureMermaidLibrary();
+      } catch (e) {
+        console.warn("[Gemini Ultimate] ensureMermaidLibrary failed:", e);
+      }
+      const { code } = preprocessMermaidCode(content);
+      const html = createStandaloneMermaidHTML(code, libCode);
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      return URL.createObjectURL(blob);
+    },
+    async markdown(content, container, previewDiv) {
+      const marked = await DependencyManager.loadMarked();
+      const p = getTrustedPolicy();
+      const rawHtml = marked.parse(content);
+      previewDiv.innerHTML = p ? p.createHTML(rawHtml) : rawHtml;
+      // 觸發表格掃描以套用 UI 優化
+      if (typeof TableOptimizer !== "undefined") TableOptimizer.scanTables();
+        ChatUIOptimizer.scanChatBoundaries();
+      return "INLINE";
+    },
+    async csv(content, container, previewDiv) {
+      const rows = DependencyManager.parseCSV(content);
+      if (rows.length === 0) throw new Error("CSV 為空");
 
-            let tableHtml = '<div class="table-block new-table-style"><table>';
-            rows.forEach((row, index) => {
-                tableHtml += '<tr>';
-                row.forEach(cell => {
-                    const tag = index === 0 ? 'th' : 'td'; // 第一行當作表頭
-                    // 簡易 XSS 防護
-                    const safeCell = cell.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    tableHtml += `<${tag}>${safeCell}</${tag}>`;
-                });
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</table></div>';
+      let tableHtml = '<div class="table-block new-table-style"><table>';
+      rows.forEach((row, index) => {
+        tableHtml += "<tr>";
+        row.forEach((cell) => {
+          const tag = index === 0 ? "th" : "td"; // 第一行當作表頭
+          // 簡易 XSS 防護
+          const safeCell = cell.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          tableHtml += `<${tag}>${safeCell}</${tag}>`;
+        });
+        tableHtml += "</tr>";
+      });
+      tableHtml += "</table></div>";
 
-            const p = getTrustedPolicy();
-            previewDiv.innerHTML = p ? p.createHTML(tableHtml) : tableHtml;
-            if (typeof TableOptimizer !== 'undefined') TableOptimizer.scanTables();
-            return 'INLINE';
-        }
-    };
+      const p = getTrustedPolicy();
+      previewDiv.innerHTML = p ? p.createHTML(tableHtml) : tableHtml;
+      if (typeof TableOptimizer !== "undefined") TableOptimizer.scanTables();
+      return "INLINE";
+    },
+  };
 
-    /* === DEPRECATED ===
+  /* === DEPRECATED ===
     // ============================================
     // Mermaid 渲染主函數 (🔥 核心修復)
     // ============================================
@@ -1900,177 +2211,217 @@
     }
     === END DEPRECATED === */
 
-    // ============================================
-    // Pollinations 圖片
-    // ============================================
-    async function renderPollinationsLink(node) {
-        if (node.tagName !== 'A' || !node.href || node.dataset.rendered) return;
+  // ============================================
+  // Pollinations 圖片
+  // ============================================
+  async function renderPollinationsLink(node) {
+    if (node.tagName !== "A" || !node.href || node.dataset.rendered) return;
 
-        let imageUrl = null;
-        if (node.href.startsWith('https://image.pollinations.ai/prompt/')) {
-            imageUrl = node.href;
-        } else if (node.href.includes('google.com/search?q=https://image.pollinations.ai/prompt/')) {
-            imageUrl = new URL(node.href).searchParams.get('q');
-        }
+    let imageUrl = null;
+    if (node.href.startsWith("https://image.pollinations.ai/prompt/")) {
+      imageUrl = node.href;
+    } else if (
+      node.href.includes(
+        "google.com/search?q=https://image.pollinations.ai/prompt/",
+      )
+    ) {
+      imageUrl = new URL(node.href).searchParams.get("q");
+    }
 
-        if (!imageUrl) return;
+    if (!imageUrl) return;
 
-        node.dataset.rendered = 'true';
-        const placeholder = document.createElement('div');
-        placeholder.style.cssText = 'padding: 16px; border: 2px dashed #4F46E5; display: inline-block; border-radius: 12px; background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);';
-        safeSetHTML(placeholder, '<span class="gemini-loading-spinner"></span>載入圖片...');
-        node.parentNode.replaceChild(placeholder, node);
+    node.dataset.rendered = "true";
+    const placeholder = document.createElement("div");
+    placeholder.style.cssText =
+      "padding: 16px; border: 2px dashed #4F46E5; display: inline-block; border-radius: 12px; background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);";
+    safeSetHTML(
+      placeholder,
+      '<span class="gemini-loading-spinner"></span>載入圖片...',
+    );
+    node.parentNode.replaceChild(placeholder, node);
 
+    try {
+      const imageBlob = await fetchResource(imageUrl, "GET", null, "blob");
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(imageBlob);
+      img.alt = "AI 圖片";
+      img.style.cssText =
+        "max-width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);";
+      img.onload = () => placeholder.parentNode.replaceChild(img, placeholder);
+    } catch (error) {
+      placeholder.textContent = `❌ 載入失敗: ${error.message}`;
+      placeholder.style.color = "#DC2626";
+    }
+  }
+
+  /* --- § 視圖控制器與按鈕注入 --- */
+  function injectSmartRenderButton(codeBlockContainer) {
+    if (codeBlockContainer.dataset.smartRenderAdded === "true") return;
+
+    const codeElement = codeBlockContainer.querySelector("pre > code, code");
+    if (!codeElement) return;
+
+    const content = (codeElement.textContent || "").trim();
+    if (!content) return;
+
+    let lang = "";
+    const decoration = codeBlockContainer.querySelector(
+      ".code-block-decoration span",
+    );
+    if (decoration) lang = decoration.textContent.trim().toLowerCase();
+
+    // 判定支援的渲染類型
+    let type = null;
+    let btnConfig = { text: "", class: "", icon: "" };
+
+    if (lang === "html" || content.startsWith("<!DOCTYPE")) {
+      type = "html";
+      btnConfig = { text: "渲染網頁", class: "", icon: "▶️" };
+    } else if (lang === "mermaid" || isMermaidCode(content)) {
+      type = "mermaid";
+      btnConfig = {
+        text: "互動圖表",
+        class: "gemini-mermaid-button",
+        icon: "🎨",
+      };
+    } else if (lang === "markdown" || lang === "md") {
+      type = "markdown";
+      btnConfig = { text: "MD 預覽", class: "gemini-md-button", icon: "📝" };
+    } else if (lang === "csv") {
+      type = "csv";
+      btnConfig = { text: "資料表", class: "gemini-csv-button", icon: "📊" };
+    }
+
+    if (!type) return;
+
+    // 建立 View Container 包裹原有的 pre
+    const preEl = codeElement.closest("pre");
+    if (!preEl || preEl.tagName !== "PRE") return;
+
+    if (!preEl.parentElement.classList.contains("tm-view-container")) {
+      const viewContainer = document.createElement("div");
+      viewContainer.className = "tm-view-container";
+      preEl.parentNode.insertBefore(viewContainer, preEl);
+      viewContainer.appendChild(preEl);
+      preEl.classList.add("tm-raw-view");
+
+      const previewDiv = document.createElement("div");
+      previewDiv.className = "tm-preview-view markdown-renderer"; // 套用 markdown 樣式
+      viewContainer.appendChild(previewDiv);
+
+      viewContainer.dataset.previewDivId = "true";
+    }
+
+    const viewContainer = preEl.closest(".tm-view-container");
+    const previewDiv = viewContainer.querySelector(".tm-preview-view");
+
+    const button = document.createElement("button");
+    button.className = `gemini-render-button ${btnConfig.class}`;
+    button.innerHTML = `${btnConfig.icon} ${btnConfig.text}`;
+    button.dataset.mode = "raw";
+
+    button.onclick = async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const isRaw = button.dataset.mode === "raw";
+
+      if (isRaw) {
+        // 切換至預覽模式
+        button.disabled = true;
+        button.innerHTML = "⏳ 處理中...";
         try {
-            const imageBlob = await fetchResource(imageUrl, 'GET', null, 'blob');
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(imageBlob);
-            img.alt = 'AI 圖片';
-            img.style.cssText = 'max-width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);';
-            img.onload = () => placeholder.parentNode.replaceChild(img, placeholder);
+          const result = await RendererStrategy[type](
+            content,
+            codeBlockContainer,
+            previewDiv,
+          );
+
+          if (result === "INLINE") {
+            // Markdown 或 CSV：隱藏代碼，顯示內聯 Markdown/CSV 預覽
+            viewContainer.classList.add("tm-state-inline-preview");
+            button.innerHTML = `💻 查看原始碼`;
+          } else {
+            // HTML 或 Mermaid：隱藏代碼，隱藏內聯預覽，加入 Iframe 組件
+            viewContainer.classList.add("tm-state-iframe-preview");
+
+            const previewContainer = document.createElement("div");
+            previewContainer.className = "gemini-preview-container";
+
+            const controls = document.createElement("div");
+            controls.className = "gemini-preview-controls";
+
+            const statusContainer = document.createElement("div");
+            statusContainer.className = "gemini-preview-overlay";
+
+            const openInTabBtn = document.createElement("button");
+            openInTabBtn.className = "gemini-control-button";
+            openInTabBtn.innerHTML = "🚀 全螢幕";
+
+            controls.appendChild(statusContainer);
+            controls.appendChild(openInTabBtn);
+
+            const iframe = document.createElement("iframe");
+            iframe.className = "gemini-preview-iframe";
+            iframe.setAttribute(
+              "sandbox",
+              "allow-scripts allow-popups allow-modals",
+            );
+
+            previewContainer.appendChild(controls);
+            previewContainer.appendChild(iframe);
+            viewContainer.appendChild(previewContainer);
+
+            iframe.src = result; // result is blobUrl
+
+            openInTabBtn.onclick = () => {
+              GM_openInTab(result, { active: true });
+            };
+
+            statusContainer.innerHTML =
+              '<span class="gemini-preview-success">✅ 渲染完成</span>';
+            previewDiv.dataset.blobUrl = result;
+
+            button.innerHTML = `❌ 關閉預覽`;
+          }
+          button.dataset.mode = "preview";
         } catch (error) {
-            placeholder.textContent = `❌ 載入失敗: ${error.message}`;
-            placeholder.style.color = '#DC2626';
+          console.error("渲染失敗:", error);
+          Utils.showToast(`❌ 渲染失敗: ${error.message}`);
+          button.innerHTML = `${btnConfig.icon} ${btnConfig.text}`;
         }
-    }
-
-    /* --- § 視圖控制器與按鈕注入 --- */
-    function injectSmartRenderButton(codeBlockContainer) {
-        if (codeBlockContainer.dataset.smartRenderAdded === 'true') return;
-
-        const codeElement = codeBlockContainer.querySelector('pre > code, code');
-        if (!codeElement) return;
-
-        const content = (codeElement.textContent || '').trim();
-        if (!content) return;
-
-        let lang = '';
-        const decoration = codeBlockContainer.querySelector('.code-block-decoration span');
-        if (decoration) lang = decoration.textContent.trim().toLowerCase();
-
-        // 判定支援的渲染類型
-        let type = null;
-        let btnConfig = { text: '', class: '', icon: '' };
-
-        if (lang === 'html' || content.startsWith('<!DOCTYPE')) { type = 'html'; btnConfig = {text: '渲染網頁', class: '', icon: '▶️'}; }
-        else if (lang === 'mermaid' || isMermaidCode(content)) { type = 'mermaid'; btnConfig = {text: '互動圖表', class: 'gemini-mermaid-button', icon: '🎨'}; }
-        else if (lang === 'markdown' || lang === 'md') { type = 'markdown'; btnConfig = {text: 'MD 預覽', class: 'gemini-md-button', icon: '📝'}; }
-        else if (lang === 'csv') { type = 'csv'; btnConfig = {text: '資料表', class: 'gemini-csv-button', icon: '📊'}; }
-
-        if (!type) return;
-
-        // 建立 View Container 包裹原有的 pre
-        const preEl = codeElement.closest('pre');
-        if (!preEl || preEl.tagName !== 'PRE') return;
-
-        if (!preEl.parentElement.classList.contains('tm-view-container')) {
-            const viewContainer = document.createElement('div');
-            viewContainer.className = 'tm-view-container';
-            preEl.parentNode.insertBefore(viewContainer, preEl);
-            viewContainer.appendChild(preEl);
-            preEl.classList.add('tm-raw-view');
-
-            const previewDiv = document.createElement('div');
-            previewDiv.className = 'tm-preview-view markdown-renderer'; // 套用 markdown 樣式
-            viewContainer.appendChild(previewDiv);
-
-            viewContainer.dataset.previewDivId = 'true';
-        }
-
-        const viewContainer = preEl.closest('.tm-view-container');
-        const previewDiv = viewContainer.querySelector('.tm-preview-view');
-
-        const button = document.createElement('button');
-        button.className = `gemini-render-button ${btnConfig.class}`;
+        button.disabled = false;
+      } else {
+        // 切換回原始碼模式
+        viewContainer.classList.remove(
+          "tm-state-inline-preview",
+          "tm-state-iframe-preview",
+        );
+        button.dataset.mode = "raw";
         button.innerHTML = `${btnConfig.icon} ${btnConfig.text}`;
-        button.dataset.mode = 'raw';
 
-        button.onclick = async (e) => {
-            e.stopPropagation(); e.preventDefault();
-            const isRaw = button.dataset.mode === 'raw';
-
-            if (isRaw) {
-                // 切換至預覽模式
-                button.disabled = true;
-                button.innerHTML = '⏳ 處理中...';
-                try {
-                    const result = await RendererStrategy[type](content, codeBlockContainer, previewDiv);
-
-                    if (result === 'INLINE') {
-                        // Markdown 或 CSV：隱藏代碼，顯示內聯 Markdown/CSV 預覽
-                        viewContainer.classList.add('tm-state-inline-preview');
-                        button.innerHTML = `💻 查看原始碼`;
-                    } else {
-                        // HTML 或 Mermaid：隱藏代碼，隱藏內聯預覽，加入 Iframe 組件
-                        viewContainer.classList.add('tm-state-iframe-preview');
-
-                        const previewContainer = document.createElement('div');
-                        previewContainer.className = 'gemini-preview-container';
-
-                        const controls = document.createElement('div');
-                        controls.className = 'gemini-preview-controls';
-
-                        const statusContainer = document.createElement('div');
-                        statusContainer.className = 'gemini-preview-overlay';
-
-                        const openInTabBtn = document.createElement('button');
-                        openInTabBtn.className = 'gemini-control-button';
-                        openInTabBtn.innerHTML = '🚀 全螢幕';
-
-                        controls.appendChild(statusContainer);
-                        controls.appendChild(openInTabBtn);
-
-                        const iframe = document.createElement('iframe');
-                        iframe.className = 'gemini-preview-iframe';
-                        iframe.setAttribute('sandbox', 'allow-scripts allow-popups allow-modals');
-
-                        previewContainer.appendChild(controls);
-                        previewContainer.appendChild(iframe);
-                        viewContainer.appendChild(previewContainer);
-
-                        iframe.src = result; // result is blobUrl
-
-                        openInTabBtn.onclick = () => {
-                            GM_openInTab(result, { active: true });
-                        };
-
-                        statusContainer.innerHTML = '<span class="gemini-preview-success">✅ 渲染完成</span>';
-                        previewDiv.dataset.blobUrl = result;
-
-                        button.innerHTML = `❌ 關閉預覽`;
-                    }
-                    button.dataset.mode = 'preview';
-                } catch (error) {
-                    console.error('渲染失敗:', error);
-                    Utils.showToast(`❌ 渲染失敗: ${error.message}`);
-                    button.innerHTML = `${btnConfig.icon} ${btnConfig.text}`;
-                }
-                button.disabled = false;
-            } else {
-                // 切換回原始碼模式
-                viewContainer.classList.remove('tm-state-inline-preview', 'tm-state-iframe-preview');
-                button.dataset.mode = 'raw';
-                button.innerHTML = `${btnConfig.icon} ${btnConfig.text}`;
-
-                // 清理 Blob 記憶體
-                if (previewDiv.dataset.blobUrl) {
-                    URL.revokeObjectURL(previewDiv.dataset.blobUrl);
-                    delete previewDiv.dataset.blobUrl;
-                }
-                previewDiv.innerHTML = '';
-                const iframePreview = viewContainer.querySelector('.gemini-preview-container');
-                if (iframePreview) iframePreview.remove();
-            }
-        };
-
-        const buttonsDiv = codeBlockContainer.querySelector('.code-block-decoration .buttons');
-        if (buttonsDiv) {
-            buttonsDiv.insertBefore(button, buttonsDiv.firstChild);
-            codeBlockContainer.dataset.smartRenderAdded = 'true';
+        // 清理 Blob 記憶體
+        if (previewDiv.dataset.blobUrl) {
+          URL.revokeObjectURL(previewDiv.dataset.blobUrl);
+          delete previewDiv.dataset.blobUrl;
         }
-    }
+        previewDiv.innerHTML = "";
+        const iframePreview = viewContainer.querySelector(
+          ".gemini-preview-container",
+        );
+        if (iframePreview) iframePreview.remove();
+      }
+    };
 
-    /* === DEPRECATED ===
+    const buttonsDiv = codeBlockContainer.querySelector(
+      ".code-block-decoration .buttons",
+    );
+    if (buttonsDiv) {
+      buttonsDiv.insertBefore(button, buttonsDiv.firstChild);
+      codeBlockContainer.dataset.smartRenderAdded = "true";
+    }
+  }
+
+  /* === DEPRECATED ===
     // ============================================
     // 添加渲染按鈕
     // ============================================
@@ -2142,1519 +2493,1841 @@
         }
     }
     === END DEPRECATED === */
-    /* --- § 10. Core Utilities --- */
-    const ATTR_PROCESSED           = 'data-tm-processed';
-    const ATTR_CONTAINER_PROCESSED = 'data-tm-container-processed';
+  /* --- § 10. Core Utilities --- */
+  const ATTR_PROCESSED = "data-tm-processed";
+  const ATTR_CONTAINER_PROCESSED = "data-tm-container-processed";
 
-    const Utils = {
-        /* Toast 通知 */
-        showToast(msg, duration = 2500) {
-            if (CONFIG.IS_TOUCH && window.navigator.vibrate) window.navigator.vibrate(10);
-            const el = document.createElement('div');
-            el.className = 'tm-ml-toast';
-            el.innerHTML = `<strong>Gemini v6.0</strong>${msg}`;
-            document.body.appendChild(el);
-            requestAnimationFrame(() => el.classList.add('tm-show'));
-            setTimeout(() => { el.classList.remove('tm-show'); setTimeout(() => el.remove(), 300); }, duration);
-        },
+  const Utils = {
+    /* Toast 通知 */
+    showToast(msg, duration = 2500) {
+      if (CONFIG.IS_TOUCH && window.navigator.vibrate)
+        window.navigator.vibrate(10);
+      const el = document.createElement("div");
+      el.className = "tm-ml-toast";
+      el.innerHTML = `<strong>Gemini v6.0</strong>${msg}`;
+      document.body.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("tm-show"));
+      setTimeout(() => {
+        el.classList.remove("tm-show");
+        setTimeout(() => el.remove(), 300);
+      }, duration);
+    },
 
-        /* === v6.0 Industrial UX: State Persistence === */
-        saveState(key, value) {
-            if (!CONFIG.STATE_PERSISTENCE_ENABLED || typeof GM_setValue === 'undefined') return;
-            try {
-                GM_setValue(key, {
-                    value: value,
-                    timestamp: Date.now()
-                });
-                this.showStateIndicator('已儲存');
-            } catch (e) { log('State save error:', e); }
-        },
+    /* === v6.0 Industrial UX: State Persistence === */
+    saveState(key, value) {
+      if (
+        !CONFIG.STATE_PERSISTENCE_ENABLED ||
+        typeof GM_setValue === "undefined"
+      )
+        return;
+      try {
+        GM_setValue(key, {
+          value: value,
+          timestamp: Date.now(),
+        });
+        this.showStateIndicator("已儲存");
+      } catch (e) {
+        log("State save error:", e);
+      }
+    },
 
-        loadState(key) {
-            if (!CONFIG.STATE_PERSISTENCE_ENABLED || typeof GM_getValue === 'undefined') return null;
-            try {
-                const stored = GM_getValue(key);
-                if (stored && (Date.now() - stored.timestamp) < CONFIG.STATE_EXPIRY_MS) {
-                    return stored.value;
-                }
-                GM_setValue(key, undefined); // Clean expired
-            } catch (e) { log('State load error:', e); }
-            return null;
-        },
-
-        showStateIndicator(msg) {
-            let indicator = document.querySelector('.tm-state-indicator');
-            if (!indicator) {
-                indicator = document.createElement('div');
-                indicator.className = 'tm-state-indicator';
-                document.body.appendChild(indicator);
-            }
-            indicator.textContent = msg;
-            indicator.classList.add('tm-show');
-            setTimeout(() => indicator.classList.remove('tm-show'), 2000);
-        },
-
-        /* === v6.0 Industrial UX: Ripple Effect === */
-        addRippleEffect(element) {
-            if (!element.classList.contains('tm-ripple-effect')) {
-                element.classList.add('tm-ripple-effect');
-            }
-            element.addEventListener('click', function(e) {
-                const rect = element.getBoundingClientRect();
-                const ripple = element.querySelector('.tm-ripple-effect::after');
-                if (ripple) {
-                    ripple.style.left = `${e.clientX - rect.left}px`;
-                    ripple.style.top = `${e.clientY - rect.top}px`;
-                }
-            });
-        },
-
-        /* === v6.0 Industrial UX: Smart Tooltip === */
-        initTooltip(element, text) {
-            if (!element.classList.contains('tm-tooltip')) {
-                element.classList.add('tm-tooltip');
-            }
-            element.setAttribute('data-tooltip', text);
-        },
-
-        /* === v6.0 Industrial UX: Keyboard Navigation === */
-        highlightForKeyboard(element) {
-            element.classList.add('tm-keyboard-highlight');
-            setTimeout(() => element.classList.remove('tm-keyboard-highlight'), 2000);
-        },
-
-        /* === v6.0 Industrial UX: Reading Progress === */
-        initReadingProgress() {
-            let progressBar = document.querySelector('.tm-reading-progress');
-            if (!progressBar) {
-                progressBar = document.createElement('div');
-                progressBar.className = 'tm-reading-progress';
-                document.body.appendChild(progressBar);
-            }
-            window.addEventListener('scroll', () => {
-                const scrollTop = window.scrollY;
-                const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-                const progress = (scrollTop / docHeight) * 100;
-                progressBar.style.width = `${progress}%`;
-            });
-        },
-
-        /* Base64 URL 安全編碼（用於 mermaid.live） */
-        base64UrlEncode(str) {
-            try {
-                return btoa(unescape(encodeURIComponent(str)))
-                    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            } catch (e) { log('Base64 encode error:', e); return null; }
-        },
-
-        /* 開啟網頁（相容手機與彈窗攔截） */
-        openUrl(url) {
-            if (CONFIG.IS_MOBILE) {
-                window.location.href = url;
-            } else if (typeof GM_openInTab !== 'undefined') {
-                GM_openInTab(url, { active: true });
-            } else {
-                const win = window.open(url, '_blank');
-                if (!win) window.location.href = url;
-            }
-        },
-
-        /* 取得代碼文字 */
-        getCodeText(block) {
-            const el = block.tagName === 'CODE' ? block : (block.querySelector('code') || block);
-            return (el.textContent || el.innerText || '').trim();
-        },
-
-        /* 向上查找複製按鈕所在容器（Chrome/Firefox 兼容） */
-        getTargetContainer(codeEl) {
-            let parent = codeEl.parentElement;
-            for (let i = 0; i < 8; i++) {
-                if (!parent) break;
-                if (parent.hasAttribute(ATTR_CONTAINER_PROCESSED)) {
-                    log('Container already processed, skip');
-                    return null;
-                }
-                const btns = parent.querySelectorAll('button, [role="button"], a[role="button"]');
-                const copyBtn = Array.from(btns).find(b => {
-                    const aria  = b.getAttribute('aria-label') || b.ariaLabel || '';
-                    const text  = (b.innerText || b.textContent || '').toLowerCase();
-                    const title = b.getAttribute('title') || '';
-                    return ['copy','複製','复制','コピー','copier','kopieren'].some(k =>
-                        aria.toLowerCase().includes(k) || text.includes(k) || title.toLowerCase().includes(k)
-                    );
-                });
-                if (copyBtn) {
-                    log('Copy button found');
-                    const container = copyBtn.parentElement;
-                    container.setAttribute(ATTR_CONTAINER_PROCESSED, 'true');
-                    return { container, ref: copyBtn };
-                }
-                parent = parent.parentElement;
-            }
-            log('Copy button not found → fallback overlay');
-            return { needFallback: true };
-        },
-
-        /* Debounce */
-        debounce(func, wait) {
-            let timer;
-            return (...args) => { clearTimeout(timer); timer = setTimeout(() => func(...args), wait); };
-        },
-
-        /* Chrome 強制 reflow */
-        forceReflow(el) { if (CONFIG.IS_CHROME) void el.offsetHeight; },
-
-        /* === v6.0 Industrial UX: Skeleton Loading === */
-        createSkeleton(type = 'text', count = 3) {
-            const container = document.createElement('div');
-            for (let i = 0; i < count; i++) {
-                const skeleton = document.createElement('div');
-                skeleton.className = `tm-skeleton tm-skeleton-${type}`;
-                container.appendChild(skeleton);
-            }
-            return container;
-        },
-
-        replaceWithSkeleton(target, type, count) {
-            const skeleton = this.createSkeleton(type, count);
-            target.style.opacity = '0';
-            setTimeout(() => {
-                target.parentNode.replaceChild(skeleton, target);
-                target.style.opacity = '1';
-            }, 300);
-            return skeleton;
-        },
-
-        restoreFromSkeleton(skeleton, target) {
-            if (skeleton && skeleton.parentNode) {
-                skeleton.parentNode.replaceChild(target, skeleton);
-            }
+    loadState(key) {
+      if (
+        !CONFIG.STATE_PERSISTENCE_ENABLED ||
+        typeof GM_getValue === "undefined"
+      )
+        return null;
+      try {
+        const stored = GM_getValue(key);
+        if (stored && Date.now() - stored.timestamp < CONFIG.STATE_EXPIRY_MS) {
+          return stored.value;
         }
-    };
+        GM_setValue(key, undefined); // Clean expired
+      } catch (e) {
+        log("State load error:", e);
+      }
+      return null;
+    },
 
-    /* --- § 11. UI Components (Mermaid Live, Folding) --- */
-    const Components = {
-        /* 通用按鈕工廠 */
-        createButton(cls, iconSvg, text, onClick) {
-            const btn = document.createElement('button');
-            btn.className = `tm-action-btn ${cls}`;
-            btn.type = 'button';
-            btn.setAttribute('role', 'button');
-            btn.setAttribute('aria-label', text);
-            btn.innerHTML = `${iconSvg}<span class="tm-btn-text-full">${text}</span>`;
+    showStateIndicator(msg) {
+      let indicator = document.querySelector(".tm-state-indicator");
+      if (!indicator) {
+        indicator = document.createElement("div");
+        indicator.className = "tm-state-indicator";
+        document.body.appendChild(indicator);
+      }
+      indicator.textContent = msg;
+      indicator.classList.add("tm-show");
+      setTimeout(() => indicator.classList.remove("tm-show"), 2000);
+    },
 
-            const handler = (e) => {
-                e.preventDefault(); e.stopPropagation();
-                if (btn.classList.contains('tm-loading')) return;
-                log(`Button clicked: ${text}`);
-                onClick(btn, e);
-            };
-            if (CONFIG.IS_TOUCH) btn.addEventListener('touchend', handler, { passive: false });
-            btn.addEventListener('click', handler, false);
-            if (CONFIG.IS_CHROME) requestAnimationFrame(() => Utils.forceReflow(btn));
-            return btn;
-        },
-
-        /* Mermaid Live 按鈕（開啟 mermaid.live 編輯器） */
-        createMermaidLiveBtn(codeEl) {
-            const btn = document.createElement('a');
-            btn.className = 'tm-action-btn tm-btn-mermaid';
-            btn.target = '_blank';
-            btn.rel = 'noopener noreferrer';
-            btn.setAttribute('role', 'link');
-            btn.setAttribute('aria-label', 'Mermaid Live');
-            btn.style.setProperty('color', '#000000', 'important');
-
-            const iconSvg = '<svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3m-2 16H5V5h7V3H5c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2v-7h-2v7z"/></svg>';
-            btn.innerHTML = `${iconSvg}<span class="tm-btn-text-full">Mermaid Live</span>`;
-
-            const updateHref = () => {
-                try {
-                    const code = Utils.getCodeText(codeEl);
-                    const payload = {
-                        code,
-                        mermaid: {
-                            theme: 'dark',
-                            themeVariables: {
-                                darkMode: true, background: '#1E1E1E',
-                                primaryColor: '#4EC9B0', primaryTextColor: '#D4D4D4',
-                                primaryBorderColor: '#3E3E42', lineColor: '#9CDCFE',
-                                secondaryColor: '#569CD6', tertiaryColor: '#C586C0'
-                            }
-                        }
-                    };
-                    const encoded = Utils.base64UrlEncode(JSON.stringify(payload));
-                    if (encoded) {
-                        btn.href = `https://mermaid.live/edit#base64:${encoded}`;
-                    }
-                } catch (e) {
-                    log('Error updating Mermaid Live href:', e);
-                }
-            };
-
-            btn.addEventListener('mouseenter', updateHref);
-            btn.addEventListener('touchstart', updateHref, { passive: true });
-            btn.addEventListener('focus', updateHref);
-            btn.addEventListener('click', () => {
-                Utils.showToast('✓ Mermaid Live 已開啟');
-            });
-            updateHref();
-
-            if (CONFIG.IS_CHROME) requestAnimationFrame(() => Utils.forceReflow(btn));
-
-            return btn;
-        },
-
-        /* 折疊按鈕（超過 FOLD_THRESHOLD 行時出現） */
-        createFoldBtn(preElement) {
-            const iconCollapse = '<svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l5.59 5.58L19 14z"/></svg>';
-            const iconExpand   = '<svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>';
-            let isCollapsed = true;
-
-            const updateState = (btn) => {
-                if (isCollapsed) {
-                    preElement.classList.add('tm-code-container-collapsed');
-                    preElement.classList.remove('tm-code-container-expanded');
-                    btn.classList.remove('is-expanded');
-                    btn.innerHTML = `${iconExpand}<span class="tm-btn-text-full">展開代碼</span>`;
-                    btn.setAttribute('aria-label', '展開代碼');
-                    preElement.scrollTop = 0;
-                } else {
-                    preElement.classList.remove('tm-code-container-collapsed');
-                    preElement.classList.add('tm-code-container-expanded');
-                    btn.classList.add('is-expanded');
-                    btn.innerHTML = `${iconCollapse}<span class="tm-btn-text-full">收起代碼</span>`;
-                    btn.setAttribute('aria-label', '收起代碼');
-                }
-                Utils.forceReflow(preElement);
-            };
-
-            const btn = Components.createButton('tm-btn-fold', iconExpand, '展開代碼', (btnEl) => {
-                isCollapsed = !isCollapsed;
-                updateState(btnEl);
-            });
-            updateState(btn);
-            return btn;
+    /* === v6.0 Industrial UX: Ripple Effect === */
+    addRippleEffect(element) {
+      if (!element.classList.contains("tm-ripple-effect")) {
+        element.classList.add("tm-ripple-effect");
+      }
+      element.addEventListener("click", function (e) {
+        const rect = element.getBoundingClientRect();
+        const ripple = element.querySelector(".tm-ripple-effect::after");
+        if (ripple) {
+          ripple.style.left = `${e.clientX - rect.left}px`;
+          ripple.style.top = `${e.clientY - rect.top}px`;
         }
-    };
+      });
+    },
 
-    /* --- § 12. Code Block Processor & DOM Scanning --- */
-    const Processor = {
-        processBlock(codeEl, retryCount = 0) {
-            try {
-                if (codeEl.hasAttribute(ATTR_PROCESSED)) return;
+    /* === v6.0 Industrial UX: Smart Tooltip === */
+    initTooltip(element, text) {
+      if (!element.classList.contains("tm-tooltip")) {
+        element.classList.add("tm-tooltip");
+      }
+      element.setAttribute("data-tooltip", text);
+    },
 
-                const codeText  = Utils.getCodeText(codeEl);
-                if (!codeText || codeText.length < 3) return;
+    /* === v6.0 Industrial UX: Keyboard Navigation === */
+    highlightForKeyboard(element) {
+      element.classList.add("tm-keyboard-highlight");
+      setTimeout(() => element.classList.remove("tm-keyboard-highlight"), 2000);
+    },
 
-                const lineCount  = codeText.split('\n').length;
-                const isMermaid  = isMermaidCode(codeText);
-                const shouldFold = lineCount > CONFIG.FOLD_THRESHOLD;
+    /* === v6.0 Industrial UX: Reading Progress === */
+    initReadingProgress() {
+      let progressBar = document.querySelector(".tm-reading-progress");
+      if (!progressBar) {
+        progressBar = document.createElement("div");
+        progressBar.className = "tm-reading-progress";
+        document.body.appendChild(progressBar);
+      }
+      window.addEventListener("scroll", () => {
+        const scrollTop = window.scrollY;
+        const docHeight =
+          document.documentElement.scrollHeight - window.innerHeight;
+        const progress = (scrollTop / docHeight) * 100;
+        progressBar.style.width = `${progress}%`;
+      });
+    },
 
-                log(`processBlock: ${lineCount} lines, mermaid=${isMermaid}, fold=${shouldFold}`);
+    /* Base64 URL 安全編碼（用於 mermaid.live） */
+    base64UrlEncode(str) {
+      try {
+        return btoa(unescape(encodeURIComponent(str)))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+      } catch (e) {
+        log("Base64 encode error:", e);
+        return null;
+      }
+    },
 
-                if (!isMermaid && !shouldFold) {
-                    codeEl.setAttribute(ATTR_PROCESSED, 'true');
-                    return;
-                }
+    /* 開啟網頁（相容手機與彈窗攔截） */
+    openUrl(url) {
+      if (CONFIG.IS_MOBILE) {
+        window.location.href = url;
+      } else if (typeof GM_openInTab !== "undefined") {
+        GM_openInTab(url, { active: true });
+      } else {
+        const win = window.open(url, "_blank");
+        if (!win) window.location.href = url;
+      }
+    },
 
-                const target = Utils.getTargetContainer(codeEl);
-                /* ── 工業級修正 v5.1 ──────────────────────────────────────────
+    /* 取得代碼文字 */
+    getCodeText(block) {
+      const el =
+        block.tagName === "CODE" ? block : block.querySelector("code") || block;
+      return (el.textContent || el.innerText || "").trim();
+    },
+
+    /* 向上查找複製按鈕所在容器（Chrome/Firefox 兼容） */
+    getTargetContainer(codeEl) {
+      let parent = codeEl.parentElement;
+      for (let i = 0; i < 8; i++) {
+        if (!parent) break;
+        if (parent.hasAttribute(ATTR_CONTAINER_PROCESSED)) {
+          log("Container already processed, skip");
+          return null;
+        }
+        const btns = parent.querySelectorAll(
+          'button, [role="button"], a[role="button"]',
+        );
+        const copyBtn = Array.from(btns).find((b) => {
+          const aria = b.getAttribute("aria-label") || b.ariaLabel || "";
+          const text = (b.innerText || b.textContent || "").toLowerCase();
+          const title = b.getAttribute("title") || "";
+          return ["copy", "複製", "复制", "コピー", "copier", "kopieren"].some(
+            (k) =>
+              aria.toLowerCase().includes(k) ||
+              text.includes(k) ||
+              title.toLowerCase().includes(k),
+          );
+        });
+        if (copyBtn) {
+          log("Copy button found");
+          const container = copyBtn.parentElement;
+          container.setAttribute(ATTR_CONTAINER_PROCESSED, "true");
+          return { container, ref: copyBtn };
+        }
+        parent = parent.parentElement;
+      }
+      log("Copy button not found → fallback overlay");
+      return { needFallback: true };
+    },
+
+    /* Debounce */
+    debounce(func, wait) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => func(...args), wait);
+      };
+    },
+
+    /* Chrome 強制 reflow */
+    forceReflow(el) {
+      if (CONFIG.IS_CHROME) void el.offsetHeight;
+    },
+
+    /* === v6.0 Industrial UX: Skeleton Loading === */
+    createSkeleton(type = "text", count = 3) {
+      const container = document.createElement("div");
+      for (let i = 0; i < count; i++) {
+        const skeleton = document.createElement("div");
+        skeleton.className = `tm-skeleton tm-skeleton-${type}`;
+        container.appendChild(skeleton);
+      }
+      return container;
+    },
+
+    replaceWithSkeleton(target, type, count) {
+      const skeleton = this.createSkeleton(type, count);
+      target.style.opacity = "0";
+      setTimeout(() => {
+        target.parentNode.replaceChild(skeleton, target);
+        target.style.opacity = "1";
+      }, 300);
+      return skeleton;
+    },
+
+    restoreFromSkeleton(skeleton, target) {
+      if (skeleton && skeleton.parentNode) {
+        skeleton.parentNode.replaceChild(target, skeleton);
+      }
+    },
+  };
+
+  /* --- § 11. UI Components (Mermaid Live, Folding) --- */
+  const Components = {
+    /* 通用按鈕工廠 */
+    createButton(cls, iconSvg, text, onClick) {
+      const btn = document.createElement("button");
+      btn.className = `tm-action-btn ${cls}`;
+      btn.type = "button";
+      btn.setAttribute("role", "button");
+      btn.setAttribute("aria-label", text);
+      btn.innerHTML = `${iconSvg}<span class="tm-btn-text-full">${text}</span>`;
+
+      const handler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (btn.classList.contains("tm-loading")) return;
+        log(`Button clicked: ${text}`);
+        onClick(btn, e);
+      };
+      if (CONFIG.IS_TOUCH)
+        btn.addEventListener("touchend", handler, { passive: false });
+      btn.addEventListener("click", handler, false);
+      if (CONFIG.IS_CHROME) requestAnimationFrame(() => Utils.forceReflow(btn));
+      return btn;
+    },
+
+    /* Mermaid Live 按鈕（開啟 mermaid.live 編輯器） */
+    createMermaidLiveBtn(codeEl) {
+      const btn = document.createElement("a");
+      btn.className = "tm-action-btn tm-btn-mermaid";
+      btn.target = "_blank";
+      btn.rel = "noopener noreferrer";
+      btn.setAttribute("role", "link");
+      btn.setAttribute("aria-label", "Mermaid Live");
+      btn.style.setProperty("color", "#000000", "important");
+
+      const iconSvg =
+        '<svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3m-2 16H5V5h7V3H5c-1.11 0-2 .89-2 2v14c0 1.11.89 2 2 2h14c1.11 0 2-.89 2-2v-7h-2v7z"/></svg>';
+      btn.innerHTML = `${iconSvg}<span class="tm-btn-text-full">Mermaid Live</span>`;
+
+      const updateHref = () => {
+        try {
+          const code = Utils.getCodeText(codeEl);
+          const payload = {
+            code,
+            mermaid: {
+              theme: "dark",
+              themeVariables: {
+                darkMode: true,
+                background: "#1E1E1E",
+                primaryColor: "#4EC9B0",
+                primaryTextColor: "#D4D4D4",
+                primaryBorderColor: "#3E3E42",
+                lineColor: "#9CDCFE",
+                secondaryColor: "#569CD6",
+                tertiaryColor: "#C586C0",
+              },
+            },
+          };
+          const encoded = Utils.base64UrlEncode(JSON.stringify(payload));
+          if (encoded) {
+            btn.href = `https://mermaid.live/edit#base64:${encoded}`;
+          }
+        } catch (e) {
+          log("Error updating Mermaid Live href:", e);
+        }
+      };
+
+      btn.addEventListener("mouseenter", updateHref);
+      btn.addEventListener("touchstart", updateHref, { passive: true });
+      btn.addEventListener("focus", updateHref);
+      btn.addEventListener("click", () => {
+        Utils.showToast("✓ Mermaid Live 已開啟");
+      });
+      updateHref();
+
+      if (CONFIG.IS_CHROME) requestAnimationFrame(() => Utils.forceReflow(btn));
+
+      return btn;
+    },
+
+    /* 折疊按鈕（超過 FOLD_THRESHOLD 行時出現） */
+    createFoldBtn(preElement) {
+      const iconCollapse =
+        '<svg viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l5.59 5.58L19 14z"/></svg>';
+      const iconExpand =
+        '<svg viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>';
+      let isCollapsed = true;
+
+      const updateState = (btn) => {
+        if (isCollapsed) {
+          preElement.classList.add("tm-code-container-collapsed");
+          preElement.classList.remove("tm-code-container-expanded");
+          btn.classList.remove("is-expanded");
+          btn.innerHTML = `${iconExpand}<span class="tm-btn-text-full">展開代碼</span>`;
+          btn.setAttribute("aria-label", "展開代碼");
+          preElement.scrollTop = 0;
+        } else {
+          preElement.classList.remove("tm-code-container-collapsed");
+          preElement.classList.add("tm-code-container-expanded");
+          btn.classList.add("is-expanded");
+          btn.innerHTML = `${iconCollapse}<span class="tm-btn-text-full">收起代碼</span>`;
+          btn.setAttribute("aria-label", "收起代碼");
+        }
+        Utils.forceReflow(preElement);
+      };
+
+      const btn = Components.createButton(
+        "tm-btn-fold",
+        iconExpand,
+        "展開代碼",
+        (btnEl) => {
+          isCollapsed = !isCollapsed;
+          updateState(btnEl);
+        },
+      );
+      updateState(btn);
+      return btn;
+    },
+  };
+
+  /* --- § 12. Code Block Processor & DOM Scanning --- */
+  const Processor = {
+    processBlock(codeEl, retryCount = 0) {
+      try {
+        if (codeEl.hasAttribute(ATTR_PROCESSED)) return;
+
+        const codeText = Utils.getCodeText(codeEl);
+        if (!codeText || codeText.length < 3) return;
+
+        const lineCount = codeText.split("\n").length;
+        const isMermaid = isMermaidCode(codeText);
+        const shouldFold = lineCount > CONFIG.FOLD_THRESHOLD;
+
+        log(
+          `processBlock: ${lineCount} lines, mermaid=${isMermaid}, fold=${shouldFold}`,
+        );
+
+        if (!isMermaid && !shouldFold) {
+          codeEl.setAttribute(ATTR_PROCESSED, "true");
+          return;
+        }
+
+        const target = Utils.getTargetContainer(codeEl);
+        /* ── 工業級修正 v5.1 ──────────────────────────────────────────
                    所有自訂按鈕統一掛到 pre 的父層 overlay，
                    完全解耦 Gemini 原生按鈕列，零侵入、零裁切。
                    ─────────────────────────────────────────────────────────── */
-                const preEl  = codeEl.closest('pre') || codeEl.parentElement;
-                const wrapEl = preEl?.parentElement  || preEl;
-
-                if (!wrapEl || !wrapEl.isConnected) {
-                    if (retryCount < CONFIG.MAX_RETRIES && CONFIG.IS_CHROME) {
-                        log(`⏳ Retry ${retryCount + 1}/${CONFIG.MAX_RETRIES}…`);
-                        setTimeout(() => Processor.processBlock(codeEl, retryCount + 1),
-                                   CONFIG.RETRY_DELAY * (retryCount + 1));
-                        return;
-                    }
-                    codeEl.setAttribute(ATTR_PROCESSED, 'true');
-                    return;
-                }
-
-                if (getComputedStyle(wrapEl).position === 'static') wrapEl.style.position = 'relative';
-
-                let overlay = wrapEl.querySelector(':scope > .tm-overlay');
-                if (!overlay) {
-                    overlay = document.createElement('div');
-                    overlay.className = 'tm-overlay';
-                    overlay.style.paddingTop = isMermaid && !overlay.querySelector('.tm-btn-mermaid')?'0':'2%';
-                    overlay.style.paddingLeft = isMermaid && !overlay.querySelector('.tm-btn-mermaid')?'0':'2%';
-                    overlay.setAttribute(ATTR_CONTAINER_PROCESSED, 'true');
-                    overlay.setAttribute('role', 'group');
-                    overlay.setAttribute('aria-label', '代碼操作按鈕');
-                    wrapEl.appendChild(overlay);
-                    Utils.forceReflow(overlay);
-                }
-
-                /* Mermaid Live 按鈕 */
-                if (isMermaid && !overlay.querySelector('.tm-btn-mermaid')) {
-                    const mmBtn = Components.createMermaidLiveBtn(codeEl);
-                    overlay.appendChild(mmBtn);
-                    Utils.forceReflow(mmBtn);
-                    requestAnimationFrame(() => log(mmBtn.isConnected ? '✅ Mermaid Live btn added' : '❌ Mermaid Live btn missing'));
-                }
-
-                /* 折疊按鈕 */
-                if (shouldFold && preEl && !overlay.querySelector('.tm-btn-fold')) {
-                    const foldBtn = Components.createFoldBtn(preEl);
-                    overlay.appendChild(foldBtn);
-                    Utils.forceReflow(foldBtn);
-                }
-
-                codeEl.setAttribute(ATTR_PROCESSED, 'true');
-                log('✅ Block processing done');
-            } catch (err) {
-                log('❌ processBlock error:', err);
-                console.error('[Gemini v5.0] processBlock error:', err);
-            }
-        },
-
-        scan() {
-            try {
-                const seen  = new Set();
-                const nodes = [];
-                const add   = (n) => { if (!seen.has(n)) { seen.add(n); nodes.push(n); } };
-
-                /* 標準 DOM */
-                document.body.querySelectorAll('code, pre').forEach(add);
-
-                /* Shadow DOM */
-                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
-                while (walker.nextNode()) {
-                    if (walker.currentNode.shadowRoot)
-                        walker.currentNode.shadowRoot.querySelectorAll('code, pre').forEach(add);
-                }
-
-                log(`🔍 Scanning ${nodes.length} code blocks…`);
-
-                /* Chrome 批次處理 */
-                if (CONFIG.IS_CHROME && nodes.length > 10) {
-                    const bSize = 5;
-                    for (let i = 0; i < nodes.length; i += bSize) {
-                        const batch = nodes.slice(i, i + bSize);
-                        setTimeout(() => batch.forEach(Processor.processBlock), i * 10);
-                    }
-                } else {
-                    nodes.forEach(Processor.processBlock);
-                }
-
-                /* A 系統：掃描 code-block 容器（互動渲染按鈕） */
-                document.querySelectorAll('div.code-block').forEach(injectSmartRenderButton);
-
-                /* A 系統：掃描 Pollinations 連結 */
-                document.querySelectorAll('a[href*="image.pollinations.ai"]').forEach(renderPollinationsLink);
-
-                TableOptimizer.scanTables();
-
-                log('✅ Scan done');
-            } catch (err) {
-                log('❌ scan error:', err);
-                console.error('[Gemini v5.0] scan error:', err);
-            }
-        }
-    };
-
-    /* --- § 12.4.5 HPC Table Autofit Engine (自動化自調欄寬高效能運算引擎) --- */
-    const HpcTableAutofitEngine = {
-        queue: new Set(),
-        debounceTimer: null,
-        isProcessing: false,
-
-        queueTable(table) {
-            if (!table || !table.isConnected) return;
-            this.queue.add(table);
-            this.schedule();
-        },
-
-        schedule() {
-            if (this.debounceTimer) clearTimeout(this.debounceTimer);
-            this.debounceTimer = setTimeout(() => {
-                requestAnimationFrame(() => this.processQueue());
-            }, 80); // 80ms debounce perfectly balances live response and CPU budget for streaming
-        },
-
-        processQueue() {
-            if (this.isProcessing) return;
-            this.isProcessing = true;
-
-            const tables = Array.from(this.queue).filter(t => t.isConnected);
-            this.queue.clear();
-
-            if (tables.length === 0) {
-                this.isProcessing = false;
-                return;
-            }
-
-            // --- HPC Batch Phase 1: Write (Preparation) ---
-            // Batch all reset operations together to allow the browser to process style recalculation in one single pass
-            const backups = [];
-            tables.forEach(table => {
-                const trs = table.querySelectorAll('tr');
-                if (trs.length === 0) return;
-                const firstRow = trs[0];
-                const cells = firstRow.querySelectorAll('th, td');
-                if (cells.length === 0) return;
-
-                const tableBackups = [];
-                trs.forEach(row => {
-                    const rowCells = row.querySelectorAll('th, td');
-                    rowCells.forEach(c => {
-                        tableBackups.push({
-                            el: c,
-                            whiteSpace: c.style.whiteSpace
-                        });
-                    });
-                });
-
-                backups.push({
-                    table,
-                    cells,
-                    trs,
-                    numCols: cells.length,
-                    tableBackups
-                });
-
-                // Write Layout Parameters
-                table.style.setProperty('table-layout', 'auto', 'important');
-                table.style.setProperty('width', 'max-content', 'important');
-                table.style.setProperty('min-width', 'max-content', 'important');
-
-                trs.forEach(row => {
-                    const rowCells = row.querySelectorAll('th, td');
-                    rowCells.forEach(c => {
-                        c.style.setProperty('width', 'auto', 'important');
-                        c.style.setProperty('min-width', 'auto', 'important');
-                        c.style.setProperty('white-space', 'nowrap', 'important');
-                    });
-                });
-            });
-
-            // --- HPC Batch Phase 2: Read (Measurement) ---
-            // Now we read metric properties (scrollWidth) across all tables sequentially. Because we have already reset styles,
-            // this reads from an aligned DOM state and causes ZERO layout thrashing.
-            const results = [];
-            backups.forEach(data => {
-                const { numCols, trs, cells, table, tableBackups } = data;
-                const optimalWidths = Array(numCols).fill(40);
-
-                trs.forEach(row => {
-                    const rowCells = row.querySelectorAll('th, td');
-                    for (let idx = 0; idx < numCols; idx++) {
-                        if (rowCells[idx]) {
-                            const cellW = rowCells[idx].scrollWidth + 32; // Reserve padding offset
-                            if (cellW > optimalWidths[idx]) {
-                                optimalWidths[idx] = cellW;
-                            }
-                        }
-                    }
-                });
-
-                // Safeguard limits: Math.min(500, Math.max(40, optimalWidth))
-                for (let idx = 0; idx < numCols; idx++) {
-                    optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
-                }
-
-                results.push({
-                    table,
-                    cells,
-                    numCols,
-                    optimalWidths,
-                    tableBackups
-                });
-            });
-
-            // --- HPC Batch Phase 3: Write (Restore & Style Application) ---
-            // Finally we lock down the computed responsive percentages to ensure robust display and high scroll performance
-            results.forEach(res => {
-                const { table, cells, numCols, optimalWidths, tableBackups } = res;
-
-                // Restore cell whiteSpace properties to allow natural wraps inside fixed boxes
-                tableBackups.forEach(b => {
-                    if (b.whiteSpace) {
-                        b.el.style.setProperty('white-space', b.whiteSpace, 'important');
-                    } else {
-                        b.el.style.removeProperty('white-space');
-                    }
-                });
-
-                table.style.setProperty('table-layout', 'fixed', 'important');
-                table.style.setProperty('width', '100%', 'important');
-                table.style.setProperty('min-width', '100%', 'important');
-
-                const totalOptimalWidth = optimalWidths.reduce((sum, w) => sum + w, 0) || 1;
-                cells.forEach((c, idx) => {
-                    if (idx < numCols) {
-                        const pctWidth = ((optimalWidths[idx] / totalOptimalWidth) * 100).toFixed(4) + '%';
-                        c.style.setProperty('width', pctWidth, 'important');
-                        c.style.setProperty('min-width', pctWidth, 'important');
-                    }
-                });
-            });
-
-            this.isProcessing = false;
-        }
-    };
-
-    /* --- § 12.5 Table Optimizer (表格微互動與操作增強) --- */
-    const TableOptimizer = {
-        tableProcessedAttr: 'data-tm-table-processed',
-
-        exportToCSV(tableEl) {
-            let csv = [];
-            const rows = tableEl.querySelectorAll('tr');
-            for (let i = 0; i < rows.length; i++) {
-                let row = [], cols = rows[i].querySelectorAll('td, th');
-                for (let j = 0; j < cols.length; j++) {
-                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ');
-                    data = data.replace(/"/g, '""'); // 逸出雙引號
-                    row.push('"' + data + '"');
-                }
-                csv.push(row.join(','));
-            }
-            const csvFile = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv.join('\n')], {type: 'text/csv;charset=utf-8;'});
-            const downloadLink = document.createElement('a');
-            downloadLink.download = `gemini_table_export_${Date.now()}.csv`;
-            downloadLink.href = window.URL.createObjectURL(csvFile);
-            downloadLink.style.display = 'none';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        },
-
-        copyTableText(tableEl) {
-            try {
-                let csv = [];
-                const rows = tableEl.querySelectorAll('tr');
-                for (const row of rows) {
-                    const cols = row.querySelectorAll('td, th');
-                    const rowData = [];
-                    for (const col of cols) {
-                        let data = (col.innerText || col.textContent || '').trim();
-                        data = data.replace(/"/g, '""'); // Escape double quotes
-                        rowData.push(`"${data}"`);
-                    }
-                    csv.push(rowData.join(','));
-                }
-                const csvString = csv.join('\n');
-
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(csvString).then(() => {
-                        Utils.showToast('📋 表格已複製 (逗點分隔)');
-                    }).catch(() => {
-                        GM_setClipboard(csvString, 'text');
-                        Utils.showToast('📋 表格已複製 (逗點分隔)');
-                    });
-                } else {
-                    GM_setClipboard(csvString, 'text');
-                    Utils.showToast('📋 表格已複製 (逗點分隔)');
-                }
-            } catch (err) {
-                console.error('[Gemini Ultimate] Copy Table Error:', err);
-                GM_setClipboard(tableEl.innerText, 'text');
-                Utils.showToast('📋 表格內容已複製');
-            }
-        },
-
-        processTable(tableContainer) {
-            const table = tableContainer.querySelector('table');
-            if (!table) return;
-
-            const sig = `${table.rows.length}_${table.innerText.length}`;
-            const isProcessed = tableContainer.hasAttribute(this.tableProcessedAttr);
-
-            if (isProcessed) {
-                // 如果內容變更，自動排入佇列進行高效能自適應調寬
-                if (table.dataset.tmTableSig !== sig) {
-                    table.dataset.tmTableSig = sig;
-                    HpcTableAutofitEngine.queueTable(table);
-                }
-                return;
-            }
-
-            // 確保父容器為 relative 以放置絕對定位的工具列
-            if (getComputedStyle(tableContainer).position === 'static') {
-                tableContainer.style.position = 'relative';
-            }
-
-            // 初始化特徵編碼
-            table.dataset.tmTableSig = sig;
-
-            // 🚨 工業級自動化 HPC 欄寬最適化：第一次處理時，直接將其加入 HPC 高效佇列中（靜默，無 Toast 打擾）
-            HpcTableAutofitEngine.queueTable(table);
-
-            const toolbar = document.createElement('div');
-            toolbar.className = 'tm-table-toolbar';
-
-            // 建立一鍵自調寬度按鈕 (手動點擊依然同步觸發並彈出 Toast 提供回饋)
-            const fitBtn = Components.createButton('tm-btn-fold', '↔️', '自調欄寬', () => this.autoFitAllColumns(table, false));
-            fitBtn.classList.replace('tm-btn-fold', 'tm-btn-mermaid');
-
-            // 建立複製按鈕
-            const copyBtn = Components.createButton('tm-btn-fold', '📋', '複製CSV', () => this.copyTableText(table));
-
-            // 建立匯出按鈕
-            const exportBtn = Components.createButton('tm-btn-fold', '📥', '匯出CSV', () => this.exportToCSV(table));
-
-            toolbar.appendChild(fitBtn);
-            toolbar.appendChild(copyBtn);
-            toolbar.appendChild(exportBtn);
-            tableContainer.appendChild(toolbar);
-
-            // 載入高保真 Excel-like 欄寬調整與雙擊自適應核心
-            this.makeTableResizable(table);
-
-            tableContainer.setAttribute(this.tableProcessedAttr, 'true');
-        },
-
-        autoFitAllColumns(table, isSilent = false) {
-            const firstRow = table.querySelector('tr');
-            if (!firstRow) return;
-            const cells = firstRow.querySelectorAll('th, td');
-            const numCols = cells.length;
-            if (numCols === 0) return;
-
-            const trs = table.querySelectorAll('tr');
-
-            // 儲存所有 cell 的原始寬度與樣式備份
-            const allCellBackups = [];
-            trs.forEach(row => {
-                const rowCells = row.querySelectorAll('th, td');
-                rowCells.forEach(c => {
-                    allCellBackups.push({
-                        el: c,
-                        width: c.style.width,
-                        minWidth: c.style.minWidth,
-                        whiteSpace: c.style.whiteSpace
-                    });
-                });
-            });
-
-            // 臨時釋放版面限制以測量原生的自然寬度
-            table.style.setProperty('table-layout', 'auto', 'important');
-            table.style.setProperty('width', 'max-content', 'important');
-            table.style.setProperty('min-width', 'max-content', 'important');
-
-            trs.forEach(row => {
-                const rowCells = row.querySelectorAll('th, td');
-                rowCells.forEach(c => {
-                    c.style.setProperty('width', 'auto', 'important');
-                    c.style.setProperty('min-width', 'auto', 'important');
-                    c.style.setProperty('white-space', 'nowrap', 'important');
-                });
-            });
-
-            // 測量每一欄的最大 content 寬度
-            const optimalWidths = Array(numCols).fill(40);
-            trs.forEach(row => {
-                const rowCells = row.querySelectorAll('th, td');
-                for (let idx = 0; idx < numCols; idx++) {
-                    if (rowCells[idx]) {
-                        const cellW = rowCells[idx].scrollWidth + 32; // 預留微調內邊界補償
-                        if (cellW > optimalWidths[idx]) {
-                            optimalWidths[idx] = cellW;
-                        }
-                    }
-                }
-            });
-
-            // 商業級最寬限制防呆：防止偶爾出現超長文字把欄位拉出上千像素
-            for (let idx = 0; idx < numCols; idx++) {
-                optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
-            }
-
-            // 恢復所有 Row 節點的原狀態
-            allCellBackups.forEach(b => {
-                b.el.style.width = b.width;
-                b.el.style.minWidth = b.minWidth;
-                b.el.style.whiteSpace = b.whiteSpace;
-            });
-
-            // 轉換為百分比並硬化 layout
-            table.style.setProperty('table-layout', 'fixed', 'important');
-            table.style.setProperty('width', '100%', 'important');
-            table.style.setProperty('min-width', '100%', 'important');
-
-            const totalOptimalWidth = optimalWidths.reduce((sum, w) => sum + w, 0) || 1;
-            cells.forEach((c, idx) => {
-                const pctWidth = ((optimalWidths[idx] / totalOptimalWidth) * 100).toFixed(4) + '%';
-                c.style.setProperty('width', pctWidth, 'important');
-                c.style.setProperty('min-width', pctWidth, 'important');
-            });
-
-            if (!isSilent) {
-                Utils.showToast('📋 所有欄位寬度已智慧自適應最佳化');
-            }
-        },
-
-        makeTableResizable(table) {
-            const firstRow = table.querySelector('tr');
-            if (!firstRow) return;
-
-            const cells = firstRow.querySelectorAll('th, td');
-            cells.forEach((cell, index) => {
-                cell.classList.add('tm-resizable-cell');
-                cell.style.setProperty('position', 'relative', 'important');
-
-                if (cell.querySelector('.tm-col-resizer')) return;
-
-                // 如果是最後一欄，不加 resizer (因為後面沒有下一欄可以互相擠壓)
-                if (index === cells.length - 1) return;
-
-                const resizer = document.createElement('div');
-                resizer.className = 'tm-col-resizer';
-                resizer.dataset.colIndex = index;
-                resizer.title = '雙擊此處自動最適化此欄寬度，或手動拖曳調整';
-                cell.appendChild(resizer);
-
-                // === 雙擊特製 UX：智慧型 Auto-fit 單一欄寬 ===
-                resizer.addEventListener('dblclick', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    const colIndex = parseInt(resizer.dataset.colIndex, 10);
-                    const colCells = Array.from(cells);
-                    const trs = table.querySelectorAll('tr');
-
-                    // 1. 為了保留其他欄位的拉伸狀態，我們在發生重排前精準讀取各欄位原本的實體寬度
-                    const origWidths = colCells.map(c => c.getBoundingClientRect().width || 100);
-
-                    // 收集這張桌子中所有 tr 裡的第一代 cell 進行全面的樣式備份
-                    const allCellBackups = [];
-                    trs.forEach(row => {
-                        const rowCells = row.querySelectorAll('th, td');
-                        rowCells.forEach(c => {
-                            allCellBackups.push({
-                                el: c,
-                                width: c.style.width,
-                                minWidth: c.style.minWidth,
-                                whiteSpace: c.style.whiteSpace
-                            });
-                        });
-                    });
-
-                    // 2. 解放整張 Table 來進行精確的自然尺寸測量
-                    table.style.setProperty('table-layout', 'auto', 'important');
-                    table.style.setProperty('width', 'max-content', 'important');
-                    table.style.setProperty('min-width', 'max-content', 'important');
-
-                    trs.forEach(row => {
-                        const rowCells = row.querySelectorAll('th, td');
-                        rowCells.forEach(c => {
-                            c.style.setProperty('width', 'auto', 'important');
-                            c.style.setProperty('min-width', 'auto', 'important');
-                        });
-                    });
-
-                    // 3. 將目前雙擊的這欄單元格全部設為 white-space: nowrap，使其自然完全撐開，不被壓縮
-                    const colRows = [];
-                    trs.forEach(r => {
-                        const rCells = r.querySelectorAll('th, td');
-                        const targetCell = rCells[colIndex];
-                        if (targetCell) {
-                            colRows.push(targetCell);
-                            targetCell.style.setProperty('white-space', 'nowrap', 'important');
-                        }
-                    });
-
-                    // 4. 計算此欄所有單元格中，最大且最真實的 content 自然寬度
-                    let optimalWidth = 50;
-                    colRows.forEach(c => {
-                        const cellW = Math.max(c.scrollWidth, c.getBoundingClientRect().width) + 32; // 超精確內距保護
-                        if (cellW > optimalWidth) optimalWidth = cellW;
-                    });
-
-                    // 防呆限制：最窄 45px，最寬 500px，防止超長資料拉扁整張表格
-                    optimalWidth = Math.min(500, Math.max(45, optimalWidth));
-
-                    // 5. 測量完成後，立刻無縫還原這張桌子所有 cell 的原始寬度與折行樣式
-                    allCellBackups.forEach(b => {
-                        b.el.style.width = b.width;
-                        b.el.style.minWidth = b.minWidth;
-                        b.el.style.whiteSpace = b.whiteSpace;
-                    });
-
-                    // 6. 硬化佈局為 O(1) Fixed，以覆蓋後的寬度比例鎖定為 100% 總寬百分比
-                    table.style.setProperty('table-layout', 'fixed', 'important');
-
-                    // 覆蓋雙擊欄位的最優像素寬度
-                    origWidths[colIndex] = optimalWidth;
-
-                    const tableSumWidth = origWidths.reduce((sum, w) => sum + w, 0) || 1;
-                    colCells.forEach((c, idx) => {
-                        const pctWidth = ((origWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
-                        c.style.setProperty('width', pctWidth, 'important');
-                        c.style.setProperty('min-width', pctWidth, 'important');
-                    });
-
-                    table.style.setProperty('width', '100%', 'important');
-                    table.style.setProperty('min-width', '100%', 'important');
-
-                    Utils.showToast('📋 欄位寬度已智慧最適化');
-                });
-
-                // === 頂級滑鼠拖曳 UX：Real-time 橫向動態調整 ===
-                resizer.addEventListener('mousedown', (e) => {
-                    if (e.button !== 0) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    resizer.classList.add('tm-resizing');
-
-                    const colIndex = parseInt(resizer.dataset.colIndex, 10);
-                    const colCells = Array.from(cells);
-
-                    const startWidths = colCells.map(c => c.getBoundingClientRect().width);
-                    table.style.setProperty('table-layout', 'fixed', 'important');
-
-                    const startX = e.clientX;
-                    const startWidth = startWidths[colIndex];
-                    const nextStartWidth = startWidths[colIndex + 1];
-
-                    document.body.style.setProperty('cursor', 'col-resize', 'important');
-                    document.body.style.setProperty('user-select', 'none', 'important');
-
-                    const onMouseMove = (moveEvent) => {
-                        const dx = moveEvent.clientX - startX;
-
-                        let targetWidth = startWidth + dx;
-                        let targetNextWidth = nextStartWidth - dx;
-
-                        const MIN_COL_WIDTH = 35;
-                        if (targetWidth < MIN_COL_WIDTH) {
-                            const diff = MIN_COL_WIDTH - targetWidth;
-                            targetWidth = MIN_COL_WIDTH;
-                            targetNextWidth -= diff;
-                        }
-                        if (targetNextWidth < MIN_COL_WIDTH) {
-                            const diff = MIN_COL_WIDTH - targetNextWidth;
-                            targetNextWidth = MIN_COL_WIDTH;
-                            targetWidth -= diff;
-                        }
-
-                        const currentWidths = [...startWidths];
-                        currentWidths[colIndex] = targetWidth;
-                        currentWidths[colIndex + 1] = targetNextWidth;
-
-                        const tableSumWidth = currentWidths.reduce((sum, w) => sum + w, 0) || 1;
-
-                        colCells.forEach((c, idx) => {
-                            const pctWidth = ((currentWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
-                            c.style.setProperty('width', pctWidth, 'important');
-                            c.style.setProperty('min-width', pctWidth, 'important');
-                        });
-
-                        table.style.setProperty('width', '100%', 'important');
-                        table.style.setProperty('min-width', '100%', 'important');
-                    };
-
-                    const onMouseUp = () => {
-                        resizer.classList.remove('tm-resizing');
-                        document.body.style.removeProperty('cursor');
-                        document.body.style.removeProperty('user-select');
-
-                        document.removeEventListener('mousemove', onMouseMove);
-                        document.removeEventListener('mouseup', onMouseUp);
-                    };
-
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                });
-
-                // === 平板與移動端 Touch 支援 ===
-                resizer.addEventListener('touchstart', (e) => {
-                    if (e.touches.length !== 1) return;
-                    const touch = e.touches[0];
-
-                    resizer.classList.add('tm-resizing');
-
-                    const colIndex = parseInt(resizer.dataset.colIndex, 10);
-                    const colCells = Array.from(cells);
-                    const startWidths = colCells.map(c => c.getBoundingClientRect().width);
-
-                    table.style.setProperty('table-layout', 'fixed', 'important');
-
-                    const startX = touch.clientX;
-                    const startWidth = startWidths[colIndex];
-                    const nextStartWidth = startWidths[colIndex + 1];
-
-                    const onTouchMove = (moveEvent) => {
-                        if (moveEvent.touches.length !== 1) return;
-                        const currentTouch = moveEvent.touches[0];
-                        const dx = currentTouch.clientX - startX;
-
-                        let targetWidth = startWidth + dx;
-                        let targetNextWidth = nextStartWidth - dx;
-
-                        const MIN_COL_WIDTH = 35;
-                        if (targetWidth < MIN_COL_WIDTH) {
-                            const diff = MIN_COL_WIDTH - targetWidth;
-                            targetWidth = MIN_COL_WIDTH;
-                            targetNextWidth -= diff;
-                        }
-                        if (targetNextWidth < MIN_COL_WIDTH) {
-                            const diff = MIN_COL_WIDTH - targetNextWidth;
-                            targetNextWidth = MIN_COL_WIDTH;
-                            targetWidth -= diff;
-                        }
-
-                        const currentWidths = [...startWidths];
-                        currentWidths[colIndex] = targetWidth;
-                        currentWidths[colIndex + 1] = targetNextWidth;
-
-                        const tableSumWidth = currentWidths.reduce((sum, w) => sum + w, 0) || 1;
-
-                        colCells.forEach((c, idx) => {
-                            const pctWidth = ((currentWidths[idx] / tableSumWidth) * 100).toFixed(4) + '%';
-                            c.style.setProperty('width', pctWidth, 'important');
-                            c.style.setProperty('min-width', pctWidth, 'important');
-                        });
-
-                        table.style.setProperty('width', '100%', 'important');
-                        table.style.setProperty('min-width', '100%', 'important');
-                    };
-
-                    const onTouchEnd = () => {
-                        resizer.classList.remove('tm-resizing');
-                        document.removeEventListener('touchmove', onTouchMove);
-                        document.removeEventListener('touchend', onTouchEnd);
-                    };
-
-                    document.addEventListener('touchmove', onTouchMove, { passive: true });
-                    document.addEventListener('touchend', onTouchEnd);
-                }, { passive: true });
-            });
-        },
-
-        scanTables() {
-            try {
-                // 精確尋找所有表格元素並進行包裹，避免在手機端將整個對話容器判斷為表格
-                document.querySelectorAll('.model-response-text table, .tm-preview-view table, .markdown-renderer table, .table-block table').forEach(table => {
-                    let container = table.closest('.tm-table-wrapper') || table.closest('.table-block');
-                    if (!container) {
-                        const parent = table.parentElement;
-                        // 如果它被放在一個單純為了包裝 table 的 div 裡 (例如 gemini 的預設)，可以直接加 class
-                        // 並且避免它是 .model-response-text 或 .markdown-renderer 母容器
-                        if (parent && parent.tagName === 'DIV' &&
-                            !parent.classList.contains('model-response-text') &&
-                            !parent.classList.contains('markdown-renderer') &&
-                            parent.children.length === 1) {
-                            parent.classList.add('tm-table-wrapper');
-                            container = parent;
-                        } else {
-                            // 否則自行建立容器包裹
-                            container = document.createElement('div');
-                            container.className = 'tm-table-wrapper';
-                            table.parentNode.insertBefore(container, table);
-                            container.appendChild(table);
-                        }
-                    }
-                    this.processTable(container);
-                });
-            } catch (e) {
-                console.warn('[Gemini Ultimate] scanTables error', e);
-            }
-        }
-    };
-
-    /* === UIImprovementsManager & AuraEngine (v6.0 - Industrial Automaton DFA Refactor) === */
-    const CapsuleState = {
-        IDLE_HOMEPAGE: 'IDLE_HOMEPAGE',
-        EXPANDED_FOCUSED: 'EXPANDED_FOCUSED',
-        EXPANDED_BLURRED: 'EXPANDED_BLURRED',
-        COLLAPSING_ANIMATING: 'COLLAPSING_ANIMATING',
-        COLLAPSED_CAPSULE: 'COLLAPSED_CAPSULE'
-    };
-
-    class IntentRecognizer {
-        constructor(onLeaveIntent) {
-            this.onLeaveIntent = onLeaveIntent;
-            this.cumScrollDist = 0;
-            this.lastScrollTime = 0;
-            this.touchStartY = 0;
-            this.touchStartX = 0;
-            
-            this.handleScroll = this.handleScroll.bind(this);
-            this.handleWheel = this.handleWheel.bind(this);
-            this.handleTouchStart = this.handleTouchStart.bind(this);
-            this.handleTouchMove = this.handleTouchMove.bind(this);
-        }
-        mount() {
-            window.addEventListener('scroll', this.handleScroll, { passive: true, capture: true });
-            window.addEventListener('wheel', this.handleWheel, { passive: true, capture: true });
-            window.addEventListener('touchstart', this.handleTouchStart, { passive: true, capture: true });
-            window.addEventListener('touchmove', this.handleTouchMove, { passive: true, capture: true });
-        }
-        teardown() {
-            window.removeEventListener('scroll', this.handleScroll, { capture: true });
-            window.removeEventListener('wheel', this.handleWheel, { capture: true });
-            window.removeEventListener('touchstart', this.handleTouchStart, { capture: true });
-            window.removeEventListener('touchmove', this.handleTouchMove, { capture: true });
-        }
-        
-        checkMomentum(dy) {
-            const now = Date.now();
-            if (now - this.lastScrollTime > 150) this.cumScrollDist = 0;
-            this.cumScrollDist += Math.abs(dy);
-            this.lastScrollTime = now;
-
-            if (this.cumScrollDist > 50) {
-                this.cumScrollDist = 0;
-                this.onLeaveIntent();
-            }
-        }
-        
-        handleScroll() { this.checkMomentum(5); }
-        handleWheel(e) { this.checkMomentum(e.deltaY); }
-        handleTouchStart(e) { 
-            if (e.touches && e.touches.length > 0) {
-                this.touchStartY = e.touches[0].clientY; 
-                this.touchStartX = e.touches[0].clientX;
-            }
-        }
-        handleTouchMove(e) {
-            if (!e.touches || e.touches.length === 0) return;
-            const touchY = e.touches[0].clientY;
-            let dy = touchY - this.touchStartY;
-            this.touchStartY = touchY;
-            this.checkMomentum(dy);
-        }
-    }
-
-    class UIImprovementsManager {
-        constructor() {
-            this.targetElement = null;
-            this.currentState = CapsuleState.IDLE_HOMEPAGE;
-            this.intentRecognizer = new IntentRecognizer(this.onUserLeaveIntent.bind(this));
-            
-            this.blurTimer = null;
-            this.animationTimer = null;
-            this.boundEvents = [];
-            this.mutationObserver = null;
-        }
-
-        isOnHomepageWithoutChat() {
-            const pathname = window.location.pathname;
-            const hasChatInUrl = pathname.includes('/app/c/');
-            const hasChatInDom = !!document.querySelector('.model-response-text, .user-query, .conversation, chat-history, [class*="message-row"]');
-            return !hasChatInUrl && !hasChatInDom;
-        }
-
-        passesContentGuard() {
-            if (!this.targetElement) return false;
-            const qlEditor = this.targetElement.querySelector('.ql-editor');
-            if (qlEditor && qlEditor.textContent.trim().length > 0) return false;
-            
-            const hasPillsOrUploads = !!this.targetElement.querySelector('uploader, [aria-label*="remove"], blob, .audio-recording-in-progress, .image-preview');
-            if (hasPillsOrUploads) return false;
-
-            return true;
-        }
-
-        passesPopupGuard() {
-            const cdkOverlay = document.querySelector('.cdk-overlay-container, .cdk-overlay-backdrop-showing, .cdk-overlay-pane');
-            if (cdkOverlay && cdkOverlay.children.length > 0) {
-                if (window.getComputedStyle(cdkOverlay).display !== 'none' && window.getComputedStyle(cdkOverlay).visibility !== 'hidden') {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        isGenerating() {
-            const stopBtn = document.querySelector(
-                'img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled, button[aria-label*="Stop"], button[aria-label*="Cancel"], button[aria-label*="停止"], button[aria-label*="中斷"]'
+        const preEl = codeEl.closest("pre") || codeEl.parentElement;
+        const wrapEl = preEl?.parentElement || preEl;
+
+        if (!wrapEl || !wrapEl.isConnected) {
+          if (retryCount < CONFIG.MAX_RETRIES && CONFIG.IS_CHROME) {
+            log(`⏳ Retry ${retryCount + 1}/${CONFIG.MAX_RETRIES}…`);
+            setTimeout(
+              () => Processor.processBlock(codeEl, retryCount + 1),
+              CONFIG.RETRY_DELAY * (retryCount + 1),
             );
-            return !!stopBtn;
+            return;
+          }
+          codeEl.setAttribute(ATTR_PROCESSED, "true");
+          return;
         }
 
-        init() {
-            this.findTarget();
+        if (getComputedStyle(wrapEl).position === "static")
+          wrapEl.style.position = "relative";
 
-            this.mutationObserver = new MutationObserver(() => {
-                if (this.targetElement && !this.targetElement.isConnected) {
-                    this.teardown(true);
-                }
+        let overlay = wrapEl.querySelector(":scope > .tm-overlay");
+        if (!overlay) {
+          overlay = document.createElement("div");
+          overlay.className = "tm-overlay";
+          overlay.style.paddingTop =
+            isMermaid && !overlay.querySelector(".tm-btn-mermaid") ? "0" : "2%";
+          overlay.style.paddingLeft =
+            isMermaid && !overlay.querySelector(".tm-btn-mermaid") ? "0" : "2%";
+          overlay.setAttribute(ATTR_CONTAINER_PROCESSED, "true");
+          overlay.setAttribute("role", "group");
+          overlay.setAttribute("aria-label", "代碼操作按鈕");
+          wrapEl.appendChild(overlay);
+          Utils.forceReflow(overlay);
+        }
 
-                if (!this.targetElement) {
-                    this.findTarget();
-                }
+        /* Mermaid Live 按鈕 */
+        if (isMermaid && !overlay.querySelector(".tm-btn-mermaid")) {
+          const mmBtn = Components.createMermaidLiveBtn(codeEl);
+          overlay.appendChild(mmBtn);
+          Utils.forceReflow(mmBtn);
+          requestAnimationFrame(() =>
+            log(
+              mmBtn.isConnected
+                ? "✅ Mermaid Live btn added"
+                : "❌ Mermaid Live btn missing",
+            ),
+          );
+        }
 
-                this.evaluateStateContext();
+        /* 折疊按鈕 */
+        if (shouldFold && preEl && !overlay.querySelector(".tm-btn-fold")) {
+          const foldBtn = Components.createFoldBtn(preEl);
+          overlay.appendChild(foldBtn);
+          Utils.forceReflow(foldBtn);
+        }
+
+        codeEl.setAttribute(ATTR_PROCESSED, "true");
+        log("✅ Block processing done");
+      } catch (err) {
+        log("❌ processBlock error:", err);
+        console.error("[Gemini v5.0] processBlock error:", err);
+      }
+    },
+
+    scan() {
+      try {
+        const seen = new Set();
+        const nodes = [];
+        const add = (n) => {
+          if (!seen.has(n)) {
+            seen.add(n);
+            nodes.push(n);
+          }
+        };
+
+        /* 標準 DOM */
+        document.body.querySelectorAll("code, pre").forEach(add);
+
+        /* Shadow DOM */
+        const walker = document.createTreeWalker(
+          document.body,
+          NodeFilter.SHOW_ELEMENT,
+        );
+        while (walker.nextNode()) {
+          if (walker.currentNode.shadowRoot)
+            walker.currentNode.shadowRoot
+              .querySelectorAll("code, pre")
+              .forEach(add);
+        }
+
+        log(`🔍 Scanning ${nodes.length} code blocks…`);
+
+        /* Chrome 批次處理 */
+        if (CONFIG.IS_CHROME && nodes.length > 10) {
+          const bSize = 5;
+          for (let i = 0; i < nodes.length; i += bSize) {
+            const batch = nodes.slice(i, i + bSize);
+            setTimeout(() => batch.forEach(Processor.processBlock), i * 10);
+          }
+        } else {
+          nodes.forEach(Processor.processBlock);
+        }
+
+        /* A 系統：掃描 code-block 容器（互動渲染按鈕） */
+        document
+          .querySelectorAll("div.code-block")
+          .forEach(injectSmartRenderButton);
+
+        /* A 系統：掃描 Pollinations 連結 */
+        document
+          .querySelectorAll('a[href*="image.pollinations.ai"]')
+          .forEach(renderPollinationsLink);
+
+        TableOptimizer.scanTables();
+        ChatUIOptimizer.scanChatBoundaries();
+
+        log("✅ Scan done");
+      } catch (err) {
+        log("❌ scan error:", err);
+        console.error("[Gemini v5.0] scan error:", err);
+      }
+    },
+  };
+
+  /* --- § 12.4.5 HPC Table Autofit Engine (自動化自調欄寬高效能運算引擎) --- */
+  const HpcTableAutofitEngine = {
+    queue: new Set(),
+    debounceTimer: null,
+    isProcessing: false,
+
+    queueTable(table) {
+      if (!table || !table.isConnected) return;
+      this.queue.add(table);
+      this.schedule();
+    },
+
+    schedule() {
+      if (this.debounceTimer) clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        requestAnimationFrame(() => this.processQueue());
+      }, 80); // 80ms debounce perfectly balances live response and CPU budget for streaming
+    },
+
+    processQueue() {
+      if (this.isProcessing) return;
+      this.isProcessing = true;
+
+      const tables = Array.from(this.queue).filter((t) => t.isConnected);
+      this.queue.clear();
+
+      if (tables.length === 0) {
+        this.isProcessing = false;
+        return;
+      }
+
+      // --- HPC Batch Phase 1: Write (Preparation) ---
+      // Batch all reset operations together to allow the browser to process style recalculation in one single pass
+      const backups = [];
+      tables.forEach((table) => {
+        const trs = table.querySelectorAll("tr");
+        if (trs.length === 0) return;
+        const firstRow = trs[0];
+        const cells = firstRow.querySelectorAll("th, td");
+        if (cells.length === 0) return;
+
+        const tableBackups = [];
+        trs.forEach((row) => {
+          const rowCells = row.querySelectorAll("th, td");
+          rowCells.forEach((c) => {
+            tableBackups.push({
+              el: c,
+              whiteSpace: c.style.whiteSpace,
             });
-            this.mutationObserver.observe(document.body, { childList: true, subtree: true });
+          });
+        });
+
+        backups.push({
+          table,
+          cells,
+          trs,
+          numCols: cells.length,
+          tableBackups,
+        });
+
+        // Write Layout Parameters
+        table.style.setProperty("table-layout", "auto", "important");
+        table.style.setProperty("width", "max-content", "important");
+        table.style.setProperty("min-width", "max-content", "important");
+
+        trs.forEach((row) => {
+          const rowCells = row.querySelectorAll("th, td");
+          rowCells.forEach((c) => {
+            c.style.setProperty("width", "auto", "important");
+            c.style.setProperty("min-width", "auto", "important");
+            c.style.setProperty("white-space", "nowrap", "important");
+          });
+        });
+      });
+
+      // --- HPC Batch Phase 2: Read (Measurement) ---
+      // Now we read metric properties (scrollWidth) across all tables sequentially. Because we have already reset styles,
+      // this reads from an aligned DOM state and causes ZERO layout thrashing.
+      const results = [];
+      backups.forEach((data) => {
+        const { numCols, trs, cells, table, tableBackups } = data;
+        const optimalWidths = Array(numCols).fill(40);
+
+        trs.forEach((row) => {
+          const rowCells = row.querySelectorAll("th, td");
+          for (let idx = 0; idx < numCols; idx++) {
+            if (rowCells[idx]) {
+              const cellW = rowCells[idx].scrollWidth + 32; // Reserve padding offset
+              if (cellW > optimalWidths[idx]) {
+                optimalWidths[idx] = cellW;
+              }
+            }
+          }
+        });
+
+        // Safeguard limits: Math.min(500, Math.max(40, optimalWidth))
+        for (let idx = 0; idx < numCols; idx++) {
+          optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
         }
 
-        findTarget() {
-            let el = document.querySelector(CONFIG.UI_AURA.SELECTORS.TARGET);
-            if (!el) el = document.querySelector(CONFIG.UI_AURA.SELECTORS.FALLBACK);
-            
-            if (el) {
-                const ce = el.querySelector('.ql-editor[contenteditable="true"], textarea:not([disabled])');
-                if (!ce) return false;
-            }
+        results.push({
+          table,
+          cells,
+          numCols,
+          optimalWidths,
+          tableBackups,
+        });
+      });
 
-            if (el && !this.targetElement) {
-                this.targetElement = el;
-                log('找到目標面板，開始掛載工業級 DFA 膠囊 UI');
-                this.mount();
-                return true;
-            }
-            return false;
+      // --- HPC Batch Phase 3: Write (Restore & Style Application) ---
+      // Finally we lock down the computed responsive percentages to ensure robust display and high scroll performance
+      results.forEach((res) => {
+        const { table, cells, numCols, optimalWidths, tableBackups } = res;
+
+        // Restore cell whiteSpace properties to allow natural wraps inside fixed boxes
+        tableBackups.forEach((b) => {
+          if (b.whiteSpace) {
+            b.el.style.setProperty("white-space", b.whiteSpace, "important");
+          } else {
+            b.el.style.removeProperty("white-space");
+          }
+        });
+
+        table.style.setProperty("table-layout", "fixed", "important");
+        table.style.setProperty("width", "100%", "important");
+        table.style.setProperty("min-width", "100%", "important");
+
+        const totalOptimalWidth =
+          optimalWidths.reduce((sum, w) => sum + w, 0) || 1;
+        cells.forEach((c, idx) => {
+          if (idx < numCols) {
+            const pctWidth =
+              ((optimalWidths[idx] / totalOptimalWidth) * 100).toFixed(4) + "%";
+            c.style.setProperty("width", pctWidth, "important");
+            c.style.setProperty("min-width", pctWidth, "important");
+          }
+        });
+      });
+
+      this.isProcessing = false;
+    },
+  };
+
+  /* --- § 12.5 Table Optimizer (表格微互動與操作增強) --- */
+  const TableOptimizer = {
+    tableProcessedAttr: "data-tm-table-processed",
+
+    exportToCSV(tableEl) {
+      let csv = [];
+      const rows = tableEl.querySelectorAll("tr");
+      for (let i = 0; i < rows.length; i++) {
+        let row = [],
+          cols = rows[i].querySelectorAll("td, th");
+        for (let j = 0; j < cols.length; j++) {
+          let data = cols[j].innerText
+            .replace(/(\r\n|\n|\r)/gm, "")
+            .replace(/(\s\s)/gm, " ");
+          data = data.replace(/"/g, '""'); // 逸出雙引號
+          row.push('"' + data + '"');
         }
+        csv.push(row.join(","));
+      }
+      const csvFile = new Blob(
+        [new Uint8Array([0xef, 0xbb, 0xbf]), csv.join("\n")],
+        { type: "text/csv;charset=utf-8;" },
+      );
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `gemini_table_export_${Date.now()}.csv`;
+      downloadLink.href = window.URL.createObjectURL(csvFile);
+      downloadLink.style.display = "none";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    },
 
-        mount() {
-            this.teardownEvents();
-            
-            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-                this.targetElement.classList.add('gemini-ui-touch');
-            }
-
-            if (!this.targetElement.querySelector('.gemini-ui-stop-overlay')) {
-                const stopOverlay = document.createElement('div');
-                stopOverlay.className = 'gemini-ui-stop-overlay';
-                stopOverlay.innerHTML = '⏹️';
-                stopOverlay.title = '立即中斷 AI 回應並返回';
-                
-                ['mousedown', 'click', 'touchstart'].forEach(type => {
-                    stopOverlay.addEventListener(type, (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        this.triggerStopAndRestore();
-                    }, { passive: false });
-                });
-                this.targetElement.appendChild(stopOverlay);
-            }
-
-            this.bindElementEvent(this.targetElement, 'focusin', this.onFocusIn.bind(this));
-            this.bindElementEvent(this.targetElement, 'focusout', this.onFocusOut.bind(this));
-            this.bindElementEvent(this.targetElement, 'mousedown', this.onMouseDown.bind(this));
-            this.bindElementEvent(this.targetElement, 'touchstart', this.onMouseDown.bind(this), { passive: true });
-
-            this.intentRecognizer.mount();
-            this.evaluateStateContext();
+    copyTableText(tableEl) {
+      try {
+        let csv = [];
+        const rows = tableEl.querySelectorAll("tr");
+        for (const row of rows) {
+          const cols = row.querySelectorAll("td, th");
+          const rowData = [];
+          for (const col of cols) {
+            let data = (col.innerText || col.textContent || "").trim();
+            data = data.replace(/"/g, '""'); // Escape double quotes
+            rowData.push(`"${data}"`);
+          }
+          csv.push(rowData.join(","));
         }
+        const csvString = csv.join("\n");
 
-        bindElementEvent(el, type, listener, options = false) {
-            el.addEventListener(type, listener, options);
-            this.boundEvents.push({ el, type, listener, options });
-        }
-
-        teardownEvents() {
-            this.boundEvents.forEach(({ el, type, listener, options }) => {
-                el.removeEventListener(type, listener, options);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(csvString)
+            .then(() => {
+              Utils.showToast("📋 表格已複製 (逗點分隔)");
+            })
+            .catch(() => {
+              GM_setClipboard(csvString, "text");
+              Utils.showToast("📋 表格已複製 (逗點分隔)");
             });
-            this.boundEvents = [];
-            this.intentRecognizer.teardown();
+        } else {
+          GM_setClipboard(csvString, "text");
+          Utils.showToast("📋 表格已複製 (逗點分隔)");
         }
+      } catch (err) {
+        console.error("[Gemini Ultimate] Copy Table Error:", err);
+        GM_setClipboard(tableEl.innerText, "text");
+        Utils.showToast("📋 表格內容已複製");
+      }
+    },
 
-        teardown(soft = false) {
-            this.teardownEvents();
-            if (!soft) {
-                if (this.mutationObserver) {
-                    this.mutationObserver.disconnect();
-                    this.mutationObserver = null;
-                }
-            }
-            this.targetElement = null;
-            this.currentState = CapsuleState.IDLE_HOMEPAGE;
-            if (this.blurTimer) clearTimeout(this.blurTimer);
-            if (this.animationTimer) clearTimeout(this.animationTimer);
+    processTable(tableContainer) {
+      const table = tableContainer.querySelector("table");
+      if (!table) return;
+
+      const sig = `${table.rows.length}_${table.innerText.length}`;
+      const isProcessed = tableContainer.hasAttribute(this.tableProcessedAttr);
+
+      if (isProcessed) {
+        // 如果內容變更，自動排入佇列進行高效能自適應調寬
+        if (table.dataset.tmTableSig !== sig) {
+          table.dataset.tmTableSig = sig;
+          HpcTableAutofitEngine.queueTable(table);
         }
+        return;
+      }
 
-        evaluateStateContext() {
-            if (!this.targetElement) return;
+      // 確保父容器為 relative 以放置絕對定位的工具列
+      if (getComputedStyle(tableContainer).position === "static") {
+        tableContainer.style.position = "relative";
+      }
 
-            const isHomepage = this.isOnHomepageWithoutChat();
-            const generating = this.isGenerating();
+      // 初始化特徵編碼
+      table.dataset.tmTableSig = sig;
 
-            this.manageImmediateReplyPosition();
+      // 🚨 工業級自動化 HPC 欄寬最適化：第一次處理時，直接將其加入 HPC 高效佇列中（靜默，無 Toast 打擾）
+      HpcTableAutofitEngine.queueTable(table);
 
-            if (isHomepage) {
-                this.transitionTo(CapsuleState.IDLE_HOMEPAGE);
-                return;
+      const toolbar = document.createElement("div");
+      toolbar.className = "tm-table-toolbar";
+
+      // 建立一鍵自調寬度按鈕 (手動點擊依然同步觸發並彈出 Toast 提供回饋)
+      const fitBtn = Components.createButton(
+        "tm-btn-fold",
+        "↔️",
+        "自調欄寬",
+        () => this.autoFitAllColumns(table, false),
+      );
+      fitBtn.classList.replace("tm-btn-fold", "tm-btn-mermaid");
+
+      // 建立複製按鈕
+      const copyBtn = Components.createButton(
+        "tm-btn-fold",
+        "📋",
+        "複製CSV",
+        () => this.copyTableText(table),
+      );
+
+      // 建立匯出按鈕
+      const exportBtn = Components.createButton(
+        "tm-btn-fold",
+        "📥",
+        "匯出CSV",
+        () => this.exportToCSV(table),
+      );
+
+      toolbar.appendChild(fitBtn);
+      toolbar.appendChild(copyBtn);
+      toolbar.appendChild(exportBtn);
+      tableContainer.appendChild(toolbar);
+
+      // 載入高保真 Excel-like 欄寬調整與雙擊自適應核心
+      this.makeTableResizable(table);
+
+      tableContainer.setAttribute(this.tableProcessedAttr, "true");
+    },
+
+    autoFitAllColumns(table, isSilent = false) {
+      const firstRow = table.querySelector("tr");
+      if (!firstRow) return;
+      const cells = firstRow.querySelectorAll("th, td");
+      const numCols = cells.length;
+      if (numCols === 0) return;
+
+      const trs = table.querySelectorAll("tr");
+
+      // 儲存所有 cell 的原始寬度與樣式備份
+      const allCellBackups = [];
+      trs.forEach((row) => {
+        const rowCells = row.querySelectorAll("th, td");
+        rowCells.forEach((c) => {
+          allCellBackups.push({
+            el: c,
+            width: c.style.width,
+            minWidth: c.style.minWidth,
+            whiteSpace: c.style.whiteSpace,
+          });
+        });
+      });
+
+      // 臨時釋放版面限制以測量原生的自然寬度
+      table.style.setProperty("table-layout", "auto", "important");
+      table.style.setProperty("width", "max-content", "important");
+      table.style.setProperty("min-width", "max-content", "important");
+
+      trs.forEach((row) => {
+        const rowCells = row.querySelectorAll("th, td");
+        rowCells.forEach((c) => {
+          c.style.setProperty("width", "auto", "important");
+          c.style.setProperty("min-width", "auto", "important");
+          c.style.setProperty("white-space", "nowrap", "important");
+        });
+      });
+
+      // 測量每一欄的最大 content 寬度
+      const optimalWidths = Array(numCols).fill(40);
+      trs.forEach((row) => {
+        const rowCells = row.querySelectorAll("th, td");
+        for (let idx = 0; idx < numCols; idx++) {
+          if (rowCells[idx]) {
+            const cellW = rowCells[idx].scrollWidth + 32; // 預留微調內邊界補償
+            if (cellW > optimalWidths[idx]) {
+              optimalWidths[idx] = cellW;
             }
-
-            if (generating && this.currentState !== CapsuleState.COLLAPSED_CAPSULE && this.currentState !== CapsuleState.COLLAPSING_ANIMATING) {
-                 if (!(document.activeElement && this.targetElement.contains(document.activeElement))) {
-                     this.transitionTo(CapsuleState.COLLAPSING_ANIMATING);
-                 }
-            } else if (!generating && this.currentState === CapsuleState.COLLAPSED_CAPSULE && this.targetElement.classList.contains('gemini-ui-generating')) {
-                 this.targetElement.classList.remove('gemini-ui-generating');
-            }
-            
-            if (this.currentState === CapsuleState.IDLE_HOMEPAGE && !isHomepage) {
-                this.transitionTo(CapsuleState.EXPANDED_BLURRED);
-            }
+          }
         }
+      });
 
-        transitionTo(newState) {
-            if (this.currentState === newState) return;
-            log(`[DFA] ${this.currentState} -> ${newState}`);
-            this.currentState = newState;
+      // 商業級最寬限制防呆：防止偶爾出現超長文字把欄位拉出上千像素
+      for (let idx = 0; idx < numCols; idx++) {
+        optimalWidths[idx] = Math.min(500, Math.max(40, optimalWidths[idx]));
+      }
 
-            if (!this.targetElement) return;
+      // 恢復所有 Row 節點的原狀態
+      allCellBackups.forEach((b) => {
+        b.el.style.width = b.width;
+        b.el.style.minWidth = b.minWidth;
+        b.el.style.whiteSpace = b.whiteSpace;
+      });
 
-            if (this.animationTimer) {
-                clearTimeout(this.animationTimer);
-                this.animationTimer = null;
+      // 轉換為百分比並硬化 layout
+      table.style.setProperty("table-layout", "fixed", "important");
+      table.style.setProperty("width", "100%", "important");
+      table.style.setProperty("min-width", "100%", "important");
+
+      const totalOptimalWidth =
+        optimalWidths.reduce((sum, w) => sum + w, 0) || 1;
+      cells.forEach((c, idx) => {
+        const pctWidth =
+          ((optimalWidths[idx] / totalOptimalWidth) * 100).toFixed(4) + "%";
+        c.style.setProperty("width", pctWidth, "important");
+        c.style.setProperty("min-width", pctWidth, "important");
+      });
+
+      if (!isSilent) {
+        Utils.showToast("📋 所有欄位寬度已智慧自適應最佳化");
+      }
+    },
+
+    makeTableResizable(table) {
+      const firstRow = table.querySelector("tr");
+      if (!firstRow) return;
+
+      const cells = firstRow.querySelectorAll("th, td");
+      cells.forEach((cell, index) => {
+        cell.classList.add("tm-resizable-cell");
+        cell.style.setProperty("position", "relative", "important");
+
+        if (cell.querySelector(".tm-col-resizer")) return;
+
+        // 如果是最後一欄，不加 resizer (因為後面沒有下一欄可以互相擠壓)
+        if (index === cells.length - 1) return;
+
+        const resizer = document.createElement("div");
+        resizer.className = "tm-col-resizer";
+        resizer.dataset.colIndex = index;
+        resizer.title = "雙擊此處自動最適化此欄寬度，或手動拖曳調整";
+        cell.appendChild(resizer);
+
+        // === 雙擊特製 UX：智慧型 Auto-fit 單一欄寬 ===
+        resizer.addEventListener("dblclick", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const colIndex = parseInt(resizer.dataset.colIndex, 10);
+          const colCells = Array.from(cells);
+          const trs = table.querySelectorAll("tr");
+
+          // 1. 為了保留其他欄位的拉伸狀態，我們在發生重排前精準讀取各欄位原本的實體寬度
+          const origWidths = colCells.map(
+            (c) => c.getBoundingClientRect().width || 100,
+          );
+
+          // 收集這張桌子中所有 tr 裡的第一代 cell 進行全面的樣式備份
+          const allCellBackups = [];
+          trs.forEach((row) => {
+            const rowCells = row.querySelectorAll("th, td");
+            rowCells.forEach((c) => {
+              allCellBackups.push({
+                el: c,
+                width: c.style.width,
+                minWidth: c.style.minWidth,
+                whiteSpace: c.style.whiteSpace,
+              });
+            });
+          });
+
+          // 2. 解放整張 Table 來進行精確的自然尺寸測量
+          table.style.setProperty("table-layout", "auto", "important");
+          table.style.setProperty("width", "max-content", "important");
+          table.style.setProperty("min-width", "max-content", "important");
+
+          trs.forEach((row) => {
+            const rowCells = row.querySelectorAll("th, td");
+            rowCells.forEach((c) => {
+              c.style.setProperty("width", "auto", "important");
+              c.style.setProperty("min-width", "auto", "important");
+            });
+          });
+
+          // 3. 將目前雙擊的這欄單元格全部設為 white-space: nowrap，使其自然完全撐開，不被壓縮
+          const colRows = [];
+          trs.forEach((r) => {
+            const rCells = r.querySelectorAll("th, td");
+            const targetCell = rCells[colIndex];
+            if (targetCell) {
+              colRows.push(targetCell);
+              targetCell.style.setProperty(
+                "white-space",
+                "nowrap",
+                "important",
+              );
+            }
+          });
+
+          // 4. 計算此欄所有單元格中，最大且最真實的 content 自然寬度
+          let optimalWidth = 50;
+          colRows.forEach((c) => {
+            const cellW =
+              Math.max(c.scrollWidth, c.getBoundingClientRect().width) + 32; // 超精確內距保護
+            if (cellW > optimalWidth) optimalWidth = cellW;
+          });
+
+          // 防呆限制：最窄 45px，最寬 500px，防止超長資料拉扁整張表格
+          optimalWidth = Math.min(500, Math.max(45, optimalWidth));
+
+          // 5. 測量完成後，立刻無縫還原這張桌子所有 cell 的原始寬度與折行樣式
+          allCellBackups.forEach((b) => {
+            b.el.style.width = b.width;
+            b.el.style.minWidth = b.minWidth;
+            b.el.style.whiteSpace = b.whiteSpace;
+          });
+
+          // 6. 硬化佈局為 O(1) Fixed，以覆蓋後的寬度比例鎖定為 100% 總寬百分比
+          table.style.setProperty("table-layout", "fixed", "important");
+
+          // 覆蓋雙擊欄位的最優像素寬度
+          origWidths[colIndex] = optimalWidth;
+
+          const tableSumWidth = origWidths.reduce((sum, w) => sum + w, 0) || 1;
+          colCells.forEach((c, idx) => {
+            const pctWidth =
+              ((origWidths[idx] / tableSumWidth) * 100).toFixed(4) + "%";
+            c.style.setProperty("width", pctWidth, "important");
+            c.style.setProperty("min-width", pctWidth, "important");
+          });
+
+          table.style.setProperty("width", "100%", "important");
+          table.style.setProperty("min-width", "100%", "important");
+
+          Utils.showToast("📋 欄位寬度已智慧最適化");
+        });
+
+        // === 頂級滑鼠拖曳 UX：Real-time 橫向動態調整 ===
+        resizer.addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+
+          resizer.classList.add("tm-resizing");
+
+          const colIndex = parseInt(resizer.dataset.colIndex, 10);
+          const colCells = Array.from(cells);
+
+          const startWidths = colCells.map(
+            (c) => c.getBoundingClientRect().width,
+          );
+          table.style.setProperty("table-layout", "fixed", "important");
+
+          const startX = e.clientX;
+          const startWidth = startWidths[colIndex];
+          const nextStartWidth = startWidths[colIndex + 1];
+
+          document.body.style.setProperty("cursor", "col-resize", "important");
+          document.body.style.setProperty("user-select", "none", "important");
+
+          const onMouseMove = (moveEvent) => {
+            const dx = moveEvent.clientX - startX;
+
+            let targetWidth = startWidth + dx;
+            let targetNextWidth = nextStartWidth - dx;
+
+            const MIN_COL_WIDTH = 35;
+            if (targetWidth < MIN_COL_WIDTH) {
+              const diff = MIN_COL_WIDTH - targetWidth;
+              targetWidth = MIN_COL_WIDTH;
+              targetNextWidth -= diff;
+            }
+            if (targetNextWidth < MIN_COL_WIDTH) {
+              const diff = MIN_COL_WIDTH - targetNextWidth;
+              targetNextWidth = MIN_COL_WIDTH;
+              targetWidth -= diff;
             }
 
-            switch(newState) {
-                case CapsuleState.IDLE_HOMEPAGE:
-                case CapsuleState.EXPANDED_FOCUSED:
-                case CapsuleState.EXPANDED_BLURRED:
-                    this.targetElement.classList.remove('gemini-ui-collapsed', 'gemini-ui-generating');
-                    this.targetElement.classList.add('gemini-ui-expanded');
-                    break;
-                case CapsuleState.COLLAPSING_ANIMATING:
-                    if (this.isGenerating()) {
-                        this.targetElement.classList.add('gemini-ui-generating');
-                    } else {
-                        this.targetElement.classList.remove('gemini-ui-generating');
-                    }
-                    this.targetElement.classList.remove('gemini-ui-expanded');
-                    this.targetElement.classList.add('gemini-ui-collapsed');
-                    
-                    this.animationTimer = setTimeout(() => {
-                        this.transitionTo(CapsuleState.COLLAPSED_CAPSULE);
-                    }, 400); 
-                    break;
-                case CapsuleState.COLLAPSED_CAPSULE:
-                    this.targetElement.classList.remove('gemini-ui-expanded');
-                    this.targetElement.classList.add('gemini-ui-collapsed');
-                    break;
+            const currentWidths = [...startWidths];
+            currentWidths[colIndex] = targetWidth;
+            currentWidths[colIndex + 1] = targetNextWidth;
+
+            const tableSumWidth =
+              currentWidths.reduce((sum, w) => sum + w, 0) || 1;
+
+            colCells.forEach((c, idx) => {
+              const pctWidth =
+                ((currentWidths[idx] / tableSumWidth) * 100).toFixed(4) + "%";
+              c.style.setProperty("width", pctWidth, "important");
+              c.style.setProperty("min-width", pctWidth, "important");
+            });
+
+            table.style.setProperty("width", "100%", "important");
+            table.style.setProperty("min-width", "100%", "important");
+          };
+
+          const onMouseUp = () => {
+            resizer.classList.remove("tm-resizing");
+            document.body.style.removeProperty("cursor");
+            document.body.style.removeProperty("user-select");
+
+            document.removeEventListener("mousemove", onMouseMove);
+            document.removeEventListener("mouseup", onMouseUp);
+          };
+
+          document.addEventListener("mousemove", onMouseMove);
+          document.addEventListener("mouseup", onMouseUp);
+        });
+
+        // === 平板與移動端 Touch 支援 ===
+        resizer.addEventListener(
+          "touchstart",
+          (e) => {
+            if (e.touches.length !== 1) return;
+            const touch = e.touches[0];
+
+            resizer.classList.add("tm-resizing");
+
+            const colIndex = parseInt(resizer.dataset.colIndex, 10);
+            const colCells = Array.from(cells);
+            const startWidths = colCells.map(
+              (c) => c.getBoundingClientRect().width,
+            );
+
+            table.style.setProperty("table-layout", "fixed", "important");
+
+            const startX = touch.clientX;
+            const startWidth = startWidths[colIndex];
+            const nextStartWidth = startWidths[colIndex + 1];
+
+            const onTouchMove = (moveEvent) => {
+              if (moveEvent.touches.length !== 1) return;
+              const currentTouch = moveEvent.touches[0];
+              const dx = currentTouch.clientX - startX;
+
+              let targetWidth = startWidth + dx;
+              let targetNextWidth = nextStartWidth - dx;
+
+              const MIN_COL_WIDTH = 35;
+              if (targetWidth < MIN_COL_WIDTH) {
+                const diff = MIN_COL_WIDTH - targetWidth;
+                targetWidth = MIN_COL_WIDTH;
+                targetNextWidth -= diff;
+              }
+              if (targetNextWidth < MIN_COL_WIDTH) {
+                const diff = MIN_COL_WIDTH - targetNextWidth;
+                targetNextWidth = MIN_COL_WIDTH;
+                targetWidth -= diff;
+              }
+
+              const currentWidths = [...startWidths];
+              currentWidths[colIndex] = targetWidth;
+              currentWidths[colIndex + 1] = targetNextWidth;
+
+              const tableSumWidth =
+                currentWidths.reduce((sum, w) => sum + w, 0) || 1;
+
+              colCells.forEach((c, idx) => {
+                const pctWidth =
+                  ((currentWidths[idx] / tableSumWidth) * 100).toFixed(4) + "%";
+                c.style.setProperty("width", pctWidth, "important");
+                c.style.setProperty("min-width", pctWidth, "important");
+              });
+
+              table.style.setProperty("width", "100%", "important");
+              table.style.setProperty("min-width", "100%", "important");
+            };
+
+            const onTouchEnd = () => {
+              resizer.classList.remove("tm-resizing");
+              document.removeEventListener("touchmove", onTouchMove);
+              document.removeEventListener("touchend", onTouchEnd);
+            };
+
+            document.addEventListener("touchmove", onTouchMove, {
+              passive: true,
+            });
+            document.addEventListener("touchend", onTouchEnd);
+          },
+          { passive: true },
+        );
+      });
+    },
+
+    scanTables() {
+      try {
+        // 精確尋找所有表格元素並進行包裹，避免在手機端將整個對話容器判斷為表格
+        document
+          .querySelectorAll(
+            ".model-response-text table, .tm-preview-view table, .markdown-renderer table, .table-block table",
+          )
+          .forEach((table) => {
+            let container =
+              table.closest(".tm-table-wrapper") ||
+              table.closest(".table-block");
+            if (!container) {
+              const parent = table.parentElement;
+              // 如果它被放在一個單純為了包裝 table 的 div 裡 (例如 gemini 的預設)，可以直接加 class
+              // 並且避免它是 .model-response-text 或 .markdown-renderer 母容器
+              if (
+                parent &&
+                parent.tagName === "DIV" &&
+                !parent.classList.contains("model-response-text") &&
+                !parent.classList.contains("markdown-renderer") &&
+                parent.children.length === 1
+              ) {
+                parent.classList.add("tm-table-wrapper");
+                container = parent;
+              } else {
+                // 否則自行建立容器包裹
+                container = document.createElement("div");
+                container.className = "tm-table-wrapper";
+                table.parentNode.insertBefore(container, table);
+                container.appendChild(table);
+              }
             }
-            
-            if (newState === CapsuleState.EXPANDED_FOCUSED || newState === CapsuleState.EXPANDED_BLURRED || newState === CapsuleState.IDLE_HOMEPAGE) {
-                 this.targetElement.querySelectorAll('*').forEach(child => {
-                     child.style.pointerEvents = '';
-                 });
-            }
+            this.processTable(container);
+          });
+      } catch (e) {
+        console.warn("[Gemini Ultimate] scanTables error", e);
+      }
+    },
+  };
+
+
+  /* --- § 12.6 Chat UI Optimizer (對話邊界分隔線) --- */
+  const ChatUIOptimizer = {
+    scanChatBoundaries() {
+      try {
+        const queries = Array.from(document.querySelectorAll('user-query, .user-query'));
+        if (queries.length <= 1) return; // 第一個對話輪次前不繪製邊界
+
+        for (let i = 1; i < queries.length; i++) {
+          const query = queries[i];
+          // 尋找包裹此 user-query 的最外層容器 (例如 message-row)
+          let container = query.closest('message-row, .message-row, conversation-message, .conversation-message');
+          const targetEl = container || query;
+
+          // 檢查是否已經插入過分隔線
+          const prevNode = targetEl.previousElementSibling;
+          if (prevNode && prevNode.classList && prevNode.classList.contains('tm-chat-divider')) {
+            continue;
+          }
+
+          const divider = document.createElement('div');
+          divider.className = 'tm-chat-divider';
+          targetEl.parentNode.insertBefore(divider, targetEl);
         }
-
-        onFocusIn(e) {
-            if (this.blurTimer) {
-                clearTimeout(this.blurTimer);
-                this.blurTimer = null;
-            }
-            
-            if (this.currentState !== CapsuleState.IDLE_HOMEPAGE) {
-                this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
-            }
-        }
-
-        onFocusOut(e) {
-            if (e.relatedTarget && (this.targetElement.contains(e.relatedTarget) || (e.relatedTarget.composedPath && e.relatedTarget.composedPath().includes(this.targetElement)))) {
-                return; // Inside Shadow DOM boundary or self
-            }
-
-            if (this.blurTimer) clearTimeout(this.blurTimer);
-            this.blurTimer = setTimeout(() => {
-                if (this.targetElement && !this.targetElement.contains(document.activeElement)) {
-                    if (this.currentState === CapsuleState.EXPANDED_FOCUSED) {
-                        this.transitionTo(CapsuleState.EXPANDED_BLURRED);
-                    }
-                }
-            }, 150); // Generous delay against popups/extensions
-        }
-
-        onMouseDown(e) {
-            if (e.target && e.target.classList && e.target.classList.contains('gemini-ui-stop-overlay')) return;
-            
-            if (this.currentState === CapsuleState.COLLAPSED_CAPSULE || this.currentState === CapsuleState.COLLAPSING_ANIMATING) {
-                this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
-                setTimeout(() => {
-                    const input = this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea');
-                    if (input) input.focus();
-                }, 50);
-            }
-            
-            if (this.blurTimer) {
-                clearTimeout(this.blurTimer);
-                this.blurTimer = null;
-            }
-        }
-
-        onUserLeaveIntent() {
-            if (this.currentState === CapsuleState.IDLE_HOMEPAGE) return;
-            
-            if (!this.passesPopupGuard()) return;
-
-            if (!this.passesContentGuard()) {
-                return;
-            }
-
-            if (this.currentState === CapsuleState.EXPANDED_BLURRED || this.currentState === CapsuleState.EXPANDED_FOCUSED) {
-                if (document.activeElement && this.targetElement.contains(document.activeElement)) {
-                    document.activeElement.blur();
-                }
-                this.transitionTo(CapsuleState.COLLAPSING_ANIMATING);
-            }
-        }
-
-        manageImmediateReplyPosition() {
-            if (!this.targetElement) return;
-            
-            // 尋找真實的「立即回答」按鈕
-            const keywords = ['立即回答', 'respond', 'reply', '回答'];
-            let targetBtn = null;
-            
-            // 根據使用者提供的 UI 特徵，往上找真正的 button 容器
-            const indicators = document.querySelectorAll('.mat-mdc-button .mat-focus-indicator, .mat-mdc-unelevated-button .mat-focus-indicator, .mat-mdc-raised-button .mat-focus-indicator, .mat-mdc-outlined-button .mat-focus-indicator, .mat-tonal-button .mat-focus-indicator');
-            
-            let possibleButtons = Array.from(indicators).map(el => el.closest('button, a, .mat-mdc-button, .mat-mdc-unelevated-button, .mat-mdc-raised-button, .mat-mdc-outlined-button, .mat-tonal-button')).filter(Boolean);
-            
-            if (possibleButtons.length === 0) {
-                 possibleButtons = Array.from(document.querySelectorAll('button, [role="button"], .chip, .mdc-evolution-chip'));
-            }
-
-            for (const btn of possibleButtons) {
-                const text = btn.textContent ? btn.textContent.trim().toLowerCase() : '';
-                if (text && keywords.some(k => text.includes(k)) && text.length < 20) {
-                    targetBtn = btn;
-                    break;
-                }
-            }
-
-            if (targetBtn) {
-                // 如果在膠囊化模式且正在生成
-                if (this.currentState === CapsuleState.COLLAPSED_CAPSULE || this.currentState === CapsuleState.COLLAPSING_ANIMATING) {
-                    // 相對於原本位置往上平移避免被遮擋 (使用 CSS transform)
-                    targetBtn.style.setProperty('transform', 'translateY(-60px)', 'important');
-                    targetBtn.style.setProperty('transition', 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 'important');
-                    targetBtn.style.setProperty('z-index', '10002', 'important');
-                    
-                    // 防止被包含在 targetElement 內時被隱藏
-                    targetBtn.style.setProperty('opacity', '1', 'important');
-                    targetBtn.style.setProperty('visibility', 'visible', 'important');
-                    targetBtn.style.setProperty('pointer-events', 'auto', 'important');
-                    
-                    if (!targetBtn.dataset.dfaBound) {
-                        targetBtn.dataset.dfaBound = 'true';
-                        targetBtn.addEventListener('click', () => {
-                            this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
-                        });
-                    }
-                } else {
-                    // 恢復原本樣式
-                    targetBtn.style.removeProperty('transform');
-                    targetBtn.style.removeProperty('z-index');
-                    targetBtn.style.removeProperty('opacity');
-                    targetBtn.style.removeProperty('visibility');
-                    targetBtn.style.removeProperty('pointer-events');
-                }
-            }
-        }
-
-        triggerStopAndRestore() {
-            this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
-            
-            if (this.targetElement) this.targetElement.classList.remove('gemini-ui-generating');
-
-            setTimeout(() => {
-                const stopBtn = document.querySelector('img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled, button[aria-label*="Stop"], button[aria-label*="Cancel"], button[aria-label*="停止"], button[aria-label*="中斷"]');
-                if (stopBtn) {
-                    stopBtn.click();
-                    ['mousedown', 'mouseup', 'click'].forEach(evt => stopBtn.dispatchEvent(new MouseEvent(evt, {bubbles: true, cancelable: true, view: window, buttons: 1})));
-                }
-
-                const input = this.targetElement ? this.targetElement.querySelector('.ql-editor, [role="textbox"], textarea, rich-textarea') : null;
-                if (input) {
-                    input.focus();
-                    try {
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        const range = document.createRange();
-                        const sel = window.getSelection();
-                        range.selectNodeContents(input);
-                        range.collapse(false);
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                    } catch(e){}
-                }
-            }, 30);
-        }
+      } catch (e) {
+        console.warn('[Gemini Ultimate] scanChatBoundaries error', e);
+      }
     }
-    /* === Private GEMs Manager (v6.0) === */
-    class PrivateGEMsManager {
-        constructor() {
-            this.hasInjected = false;
+  };
+
+  /* === UIImprovementsManager & AuraEngine (v6.0 - Industrial Automaton DFA Refactor) === */
+  const CapsuleState = {
+    IDLE_HOMEPAGE: "IDLE_HOMEPAGE",
+    EXPANDED_FOCUSED: "EXPANDED_FOCUSED",
+    EXPANDED_BLURRED: "EXPANDED_BLURRED",
+    COLLAPSING_ANIMATING: "COLLAPSING_ANIMATING",
+    COLLAPSED_CAPSULE: "COLLAPSED_CAPSULE",
+  };
+
+  class IntentRecognizer {
+    constructor(onLeaveIntent) {
+      this.onLeaveIntent = onLeaveIntent;
+      this.cumScrollDist = 0;
+      this.lastScrollTime = 0;
+      this.touchStartY = 0;
+      this.touchStartX = 0;
+
+      this.handleScroll = this.handleScroll.bind(this);
+      this.handleWheel = this.handleWheel.bind(this);
+      this.handleTouchStart = this.handleTouchStart.bind(this);
+      this.handleTouchMove = this.handleTouchMove.bind(this);
+    }
+    mount() {
+      window.addEventListener("scroll", this.handleScroll, {
+        passive: true,
+        capture: true,
+      });
+      window.addEventListener("wheel", this.handleWheel, {
+        passive: true,
+        capture: true,
+      });
+      window.addEventListener("touchstart", this.handleTouchStart, {
+        passive: true,
+        capture: true,
+      });
+      window.addEventListener("touchmove", this.handleTouchMove, {
+        passive: true,
+        capture: true,
+      });
+    }
+    teardown() {
+      window.removeEventListener("scroll", this.handleScroll, {
+        capture: true,
+      });
+      window.removeEventListener("wheel", this.handleWheel, { capture: true });
+      window.removeEventListener("touchstart", this.handleTouchStart, {
+        capture: true,
+      });
+      window.removeEventListener("touchmove", this.handleTouchMove, {
+        capture: true,
+      });
+    }
+
+    checkMomentum(dy) {
+      const now = Date.now();
+      if (now - this.lastScrollTime > 150) this.cumScrollDist = 0;
+      this.cumScrollDist += Math.abs(dy);
+      this.lastScrollTime = now;
+
+      if (this.cumScrollDist > 50) {
+        this.cumScrollDist = 0;
+        this.onLeaveIntent();
+      }
+    }
+
+    handleScroll() {
+      this.checkMomentum(5);
+    }
+    handleWheel(e) {
+      this.checkMomentum(e.deltaY);
+    }
+    handleTouchStart(e) {
+      if (e.touches && e.touches.length > 0) {
+        this.touchStartY = e.touches[0].clientY;
+        this.touchStartX = e.touches[0].clientX;
+      }
+    }
+    handleTouchMove(e) {
+      if (!e.touches || e.touches.length === 0) return;
+      const touchY = e.touches[0].clientY;
+      let dy = touchY - this.touchStartY;
+      this.touchStartY = touchY;
+      this.checkMomentum(dy);
+    }
+  }
+
+  class UIImprovementsManager {
+    constructor() {
+      this.targetElement = null;
+      this.currentState = CapsuleState.IDLE_HOMEPAGE;
+      this.intentRecognizer = new IntentRecognizer(
+        this.onUserLeaveIntent.bind(this),
+      );
+
+      this.blurTimer = null;
+      this.animationTimer = null;
+      this.boundEvents = [];
+      this.mutationObserver = null;
+    }
+
+    isOnHomepageWithoutChat() {
+      const pathname = window.location.pathname;
+      const hasChatInUrl = pathname.includes("/app/c/");
+      const hasChatInDom = !!document.querySelector(
+        '.model-response-text, .user-query, .conversation, chat-history, [class*="message-row"]',
+      );
+      return !hasChatInUrl && !hasChatInDom;
+    }
+
+    passesContentGuard() {
+      if (!this.targetElement) return false;
+      const qlEditor = this.targetElement.querySelector(".ql-editor");
+      if (qlEditor && qlEditor.textContent.trim().length > 0) return false;
+
+      const hasPillsOrUploads = !!this.targetElement.querySelector(
+        'uploader, [aria-label*="remove"], blob, .audio-recording-in-progress, .image-preview',
+      );
+      if (hasPillsOrUploads) return false;
+
+      return true;
+    }
+
+    passesPopupGuard() {
+      const cdkOverlay = document.querySelector(
+        ".cdk-overlay-container, .cdk-overlay-backdrop-showing, .cdk-overlay-pane",
+      );
+      if (cdkOverlay && cdkOverlay.children.length > 0) {
+        if (
+          window.getComputedStyle(cdkOverlay).display !== "none" &&
+          window.getComputedStyle(cdkOverlay).visibility !== "hidden"
+        ) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    isGenerating() {
+      const stopBtn = document.querySelector(
+        'img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled, button[aria-label*="Stop"], button[aria-label*="Cancel"], button[aria-label*="停止"], button[aria-label*="中斷"]',
+      );
+      return !!stopBtn;
+    }
+
+    init() {
+      this.findTarget();
+
+      this.mutationObserver = new MutationObserver(() => {
+        if (this.targetElement && !this.targetElement.isConnected) {
+          this.teardown(true);
         }
 
-        init() {
-            const observer = new MutationObserver((mutations) => {
-                for (let m of mutations) {
-                    for (let node of m.addedNodes) {
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            if (node.classList.contains('mat-mdc-menu-panel') && node.classList.contains('at-mentions-menu')) {
-                                this.injectGems(node);
-                            } else {
-                                const menu = node.querySelector('.mat-mdc-menu-panel.at-mentions-menu, .at-mentions-menu');
-                                if (menu) this.injectGems(menu);
-                            }
-                        }
-                    }
-                }
+        if (!this.targetElement) {
+          this.findTarget();
+        }
+
+        this.evaluateStateContext();
+      });
+      this.mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    findTarget() {
+      let el = document.querySelector(CONFIG.UI_AURA.SELECTORS.TARGET);
+      if (!el) el = document.querySelector(CONFIG.UI_AURA.SELECTORS.FALLBACK);
+
+      if (el) {
+        const ce = el.querySelector(
+          '.ql-editor[contenteditable="true"], textarea:not([disabled])',
+        );
+        if (!ce) return false;
+      }
+
+      if (el && !this.targetElement) {
+        this.targetElement = el;
+        log("找到目標面板，開始掛載工業級 DFA 膠囊 UI");
+        this.mount();
+        return true;
+      }
+      return false;
+    }
+
+    mount() {
+      this.teardownEvents();
+
+      if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
+        this.targetElement.classList.add("gemini-ui-touch");
+      }
+
+      if (!this.targetElement.querySelector(".gemini-ui-stop-overlay")) {
+        const stopOverlay = document.createElement("div");
+        stopOverlay.className = "gemini-ui-stop-overlay";
+        stopOverlay.innerHTML = "⏹️";
+        stopOverlay.title = "立即中斷 AI 回應並返回";
+
+        ["mousedown", "click", "touchstart"].forEach((type) => {
+          stopOverlay.addEventListener(
+            type,
+            (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              this.triggerStopAndRestore();
+            },
+            { passive: false },
+          );
+        });
+        this.targetElement.appendChild(stopOverlay);
+      }
+
+      this.bindElementEvent(
+        this.targetElement,
+        "focusin",
+        this.onFocusIn.bind(this),
+      );
+      this.bindElementEvent(
+        this.targetElement,
+        "focusout",
+        this.onFocusOut.bind(this),
+      );
+      this.bindElementEvent(
+        this.targetElement,
+        "mousedown",
+        this.onMouseDown.bind(this),
+      );
+      this.bindElementEvent(
+        this.targetElement,
+        "touchstart",
+        this.onMouseDown.bind(this),
+        { passive: true },
+      );
+
+      this.intentRecognizer.mount();
+      this.evaluateStateContext();
+    }
+
+    bindElementEvent(el, type, listener, options = false) {
+      el.addEventListener(type, listener, options);
+      this.boundEvents.push({ el, type, listener, options });
+    }
+
+    teardownEvents() {
+      this.boundEvents.forEach(({ el, type, listener, options }) => {
+        el.removeEventListener(type, listener, options);
+      });
+      this.boundEvents = [];
+      this.intentRecognizer.teardown();
+    }
+
+    teardown(soft = false) {
+      this.teardownEvents();
+      if (!soft) {
+        if (this.mutationObserver) {
+          this.mutationObserver.disconnect();
+          this.mutationObserver = null;
+        }
+      }
+      this.targetElement = null;
+      this.currentState = CapsuleState.IDLE_HOMEPAGE;
+      if (this.blurTimer) clearTimeout(this.blurTimer);
+      if (this.animationTimer) clearTimeout(this.animationTimer);
+    }
+
+    evaluateStateContext() {
+      if (!this.targetElement) return;
+
+      const isHomepage = this.isOnHomepageWithoutChat();
+      const generating = this.isGenerating();
+
+      this.manageImmediateReplyPosition();
+
+      if (isHomepage) {
+        this.transitionTo(CapsuleState.IDLE_HOMEPAGE);
+        return;
+      }
+
+      if (
+        generating &&
+        this.currentState !== CapsuleState.COLLAPSED_CAPSULE &&
+        this.currentState !== CapsuleState.COLLAPSING_ANIMATING
+      ) {
+        if (
+          !(
+            document.activeElement &&
+            this.targetElement.contains(document.activeElement)
+          )
+        ) {
+          this.transitionTo(CapsuleState.COLLAPSING_ANIMATING);
+        }
+      } else if (
+        !generating &&
+        this.currentState === CapsuleState.COLLAPSED_CAPSULE &&
+        this.targetElement.classList.contains("gemini-ui-generating")
+      ) {
+        this.targetElement.classList.remove("gemini-ui-generating");
+      }
+
+      if (this.currentState === CapsuleState.IDLE_HOMEPAGE && !isHomepage) {
+        this.transitionTo(CapsuleState.EXPANDED_BLURRED);
+      }
+    }
+
+    transitionTo(newState) {
+      if (this.currentState === newState) return;
+      log(`[DFA] ${this.currentState} -> ${newState}`);
+      this.currentState = newState;
+
+      if (!this.targetElement) return;
+
+      if (this.animationTimer) {
+        clearTimeout(this.animationTimer);
+        this.animationTimer = null;
+      }
+
+      switch (newState) {
+        case CapsuleState.IDLE_HOMEPAGE:
+        case CapsuleState.EXPANDED_FOCUSED:
+        case CapsuleState.EXPANDED_BLURRED:
+          this.targetElement.classList.remove(
+            "gemini-ui-collapsed",
+            "gemini-ui-generating",
+          );
+          this.targetElement.classList.add("gemini-ui-expanded");
+          break;
+        case CapsuleState.COLLAPSING_ANIMATING:
+          if (this.isGenerating()) {
+            this.targetElement.classList.add("gemini-ui-generating");
+          } else {
+            this.targetElement.classList.remove("gemini-ui-generating");
+          }
+          this.targetElement.classList.remove("gemini-ui-expanded");
+          this.targetElement.classList.add("gemini-ui-collapsed");
+
+          this.animationTimer = setTimeout(() => {
+            this.transitionTo(CapsuleState.COLLAPSED_CAPSULE);
+          }, 400);
+          break;
+        case CapsuleState.COLLAPSED_CAPSULE:
+          this.targetElement.classList.remove("gemini-ui-expanded");
+          this.targetElement.classList.add("gemini-ui-collapsed");
+          break;
+      }
+
+      if (
+        newState === CapsuleState.EXPANDED_FOCUSED ||
+        newState === CapsuleState.EXPANDED_BLURRED ||
+        newState === CapsuleState.IDLE_HOMEPAGE
+      ) {
+        this.targetElement.querySelectorAll("*").forEach((child) => {
+          child.style.pointerEvents = "";
+        });
+      }
+    }
+
+    onFocusIn(e) {
+      if (this.blurTimer) {
+        clearTimeout(this.blurTimer);
+        this.blurTimer = null;
+      }
+
+      if (this.currentState !== CapsuleState.IDLE_HOMEPAGE) {
+        this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
+      }
+    }
+
+    onFocusOut(e) {
+      if (
+        e.relatedTarget &&
+        (this.targetElement.contains(e.relatedTarget) ||
+          (e.relatedTarget.composedPath &&
+            e.relatedTarget.composedPath().includes(this.targetElement)))
+      ) {
+        return; // Inside Shadow DOM boundary or self
+      }
+
+      if (this.blurTimer) clearTimeout(this.blurTimer);
+      this.blurTimer = setTimeout(() => {
+        if (
+          this.targetElement &&
+          !this.targetElement.contains(document.activeElement)
+        ) {
+          if (this.currentState === CapsuleState.EXPANDED_FOCUSED) {
+            this.transitionTo(CapsuleState.EXPANDED_BLURRED);
+          }
+        }
+      }, 150); // Generous delay against popups/extensions
+    }
+
+    onMouseDown(e) {
+      if (
+        e.target &&
+        e.target.classList &&
+        e.target.classList.contains("gemini-ui-stop-overlay")
+      )
+        return;
+
+      if (
+        this.currentState === CapsuleState.COLLAPSED_CAPSULE ||
+        this.currentState === CapsuleState.COLLAPSING_ANIMATING
+      ) {
+        this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
+        setTimeout(() => {
+          const input = this.targetElement.querySelector(
+            '.ql-editor, [role="textbox"], textarea, rich-textarea',
+          );
+          if (input) input.focus();
+        }, 50);
+      }
+
+      if (this.blurTimer) {
+        clearTimeout(this.blurTimer);
+        this.blurTimer = null;
+      }
+    }
+
+    onUserLeaveIntent() {
+      if (this.currentState === CapsuleState.IDLE_HOMEPAGE) return;
+
+      if (!this.passesPopupGuard()) return;
+
+      if (!this.passesContentGuard()) {
+        return;
+      }
+
+      if (
+        this.currentState === CapsuleState.EXPANDED_BLURRED ||
+        this.currentState === CapsuleState.EXPANDED_FOCUSED
+      ) {
+        if (
+          document.activeElement &&
+          this.targetElement.contains(document.activeElement)
+        ) {
+          document.activeElement.blur();
+        }
+        this.transitionTo(CapsuleState.COLLAPSING_ANIMATING);
+      }
+    }
+
+    manageImmediateReplyPosition() {
+      if (!this.targetElement) return;
+
+      // 尋找真實的「立即回答」按鈕
+      const keywords = ["立即回答", "respond", "reply", "回答"];
+      let targetBtn = null;
+
+      // 根據使用者提供的 UI 特徵，往上找真正的 button 容器
+      const indicators = document.querySelectorAll(
+        ".mat-mdc-button .mat-focus-indicator, .mat-mdc-unelevated-button .mat-focus-indicator, .mat-mdc-raised-button .mat-focus-indicator, .mat-mdc-outlined-button .mat-focus-indicator, .mat-tonal-button .mat-focus-indicator",
+      );
+
+      let possibleButtons = Array.from(indicators)
+        .map((el) =>
+          el.closest(
+            "button, a, .mat-mdc-button, .mat-mdc-unelevated-button, .mat-mdc-raised-button, .mat-mdc-outlined-button, .mat-tonal-button",
+          ),
+        )
+        .filter(Boolean);
+
+      if (possibleButtons.length === 0) {
+        possibleButtons = Array.from(
+          document.querySelectorAll(
+            'button, [role="button"], .chip, .mdc-evolution-chip',
+          ),
+        );
+      }
+
+      for (const btn of possibleButtons) {
+        const text = btn.textContent
+          ? btn.textContent.trim().toLowerCase()
+          : "";
+        if (
+          text &&
+          keywords.some((k) => text.includes(k)) &&
+          text.length < 20
+        ) {
+          targetBtn = btn;
+          break;
+        }
+      }
+
+      if (targetBtn) {
+        // 如果在膠囊化模式且正在生成
+        if (
+          this.currentState === CapsuleState.COLLAPSED_CAPSULE ||
+          this.currentState === CapsuleState.COLLAPSING_ANIMATING
+        ) {
+          // 相對於原本位置往上平移避免被遮擋 (使用 CSS transform)
+          targetBtn.style.setProperty(
+            "transform",
+            "translateY(-20px)",
+            "important",
+          );
+          targetBtn.style.setProperty(
+            "transition",
+            "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+            "important",
+          );
+          targetBtn.style.setProperty("z-index", "10002", "important");
+
+          // 防止被包含在 targetElement 內時被隱藏
+          targetBtn.style.setProperty("opacity", "1", "important");
+          targetBtn.style.setProperty("visibility", "visible", "important");
+          targetBtn.style.setProperty("pointer-events", "auto", "important");
+
+          if (!targetBtn.dataset.dfaBound) {
+            targetBtn.dataset.dfaBound = "true";
+            targetBtn.addEventListener("click", () => {
+              this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
             });
-            observer.observe(document.body, { childList: true, subtree: true });
+          }
+        } else {
+          // 恢復原本樣式
+          targetBtn.style.removeProperty("transform");
+          targetBtn.style.removeProperty("z-index");
+          targetBtn.style.removeProperty("opacity");
+          targetBtn.style.removeProperty("visibility");
+          targetBtn.style.removeProperty("pointer-events");
+        }
+      }
+    }
+
+    triggerStopAndRestore() {
+      this.transitionTo(CapsuleState.EXPANDED_FOCUSED);
+
+      if (this.targetElement)
+        this.targetElement.classList.remove("gemini-ui-generating");
+
+      setTimeout(() => {
+        const stopBtn = document.querySelector(
+          'img.lm-icon-xl.icon-filled, mat-icon.lm-icon-xl.icon-filled, button[aria-label*="Stop"], button[aria-label*="Cancel"], button[aria-label*="停止"], button[aria-label*="中斷"]',
+        );
+        if (stopBtn) {
+          stopBtn.click();
+          ["mousedown", "mouseup", "click"].forEach((evt) =>
+            stopBtn.dispatchEvent(
+              new MouseEvent(evt, {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                buttons: 1,
+              }),
+            ),
+          );
         }
 
-        injectGems(menuContainer) {
-            if (menuContainer.dataset.gemsInjected) return;
-            menuContainer.dataset.gemsInjected = 'true';
+        const input = this.targetElement
+          ? this.targetElement.querySelector(
+              '.ql-editor, [role="textbox"], textarea, rich-textarea',
+            )
+          : null;
+        if (input) {
+          input.focus();
+          try {
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(input);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          } catch (e) {}
+        }
+      }, 30);
+    }
+  }
+  /* === Private GEMs Manager (v6.0) === */
+  class PrivateGEMsManager {
+    constructor() {
+      this.hasInjected = false;
+    }
 
-            const content = menuContainer.querySelector('.mat-mdc-menu-content') || menuContainer;
+    init() {
+      const observer = new MutationObserver((mutations) => {
+        for (let m of mutations) {
+          for (let node of m.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (
+                node.classList.contains("mat-mdc-menu-panel") &&
+                node.classList.contains("at-mentions-menu")
+              ) {
+                this.injectGems(node);
+              } else {
+                const menu = node.querySelector(
+                  ".mat-mdc-menu-panel.at-mentions-menu, .at-mentions-menu",
+                );
+                if (menu) this.injectGems(menu);
+              }
+            }
+          }
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
 
-            // 等待 Angular 渲染完成
-            setTimeout(() => {
-                // UI & UX 強化：修改容器最大高度，避免我們的清單被截斷或隱藏
-                const pane = menuContainer.closest('.cdk-overlay-pane');
-                if (pane) {
-                    pane.style.height = 'auto'; // 解除原生限制
-                    pane.style.maxHeight = '75vh'; // 給予足夠高度
-                }
-                menuContainer.style.height = 'auto';
-                menuContainer.style.maxHeight = '75vh';
-                content.style.maxHeight = '75vh';
-                content.style.overflowY = 'auto'; // 開啟捲軸
+    injectGems(menuContainer) {
+      if (menuContainer.dataset.gemsInjected) return;
+      menuContainer.dataset.gemsInjected = "true";
 
-                // Add header
-                const header = document.createElement('div');
-                header.textContent = '🔒 Private GEMs (Local)';
-                header.style.fontSize = '12px';
-                header.style.color = 'var(--text-muted)';
-                header.style.padding = '12px 16px 4px 16px';
-                header.style.fontWeight = '700';
-                header.style.letterSpacing = '0.5px';
-                header.style.borderTop = '1px solid var(--border-color)';
-                header.style.marginTop = '4px';
-                content.appendChild(header);
+      const content =
+        menuContainer.querySelector(".mat-mdc-menu-content") || menuContainer;
 
-                CONFIG.CUSTOM_GEMS.forEach(gem => {
-                    const btn = document.createElement('button');
-                    // 模擬官方行為
-                    btn.className = 'mat-mdc-menu-item mat-mdc-focus-indicator';
-                    btn.role = 'menuitem';
-                    btn.style.display = 'flex';
-                    btn.style.alignItems = 'center';
-                    btn.style.gap = '12px';
-                    btn.style.minHeight = '52px';
-                    btn.style.width = '100%';
-                    btn.style.background = 'transparent';
-                    btn.style.border = 'none';
-                    btn.style.cursor = 'pointer';
-                    btn.style.padding = '8px 16px';
-                    btn.style.transition = 'background 0.2s ease';
+      // 等待 Angular 渲染完成
+      setTimeout(() => {
+        // UI & UX 強化：修改容器最大高度，避免我們的清單被截斷或隱藏
+        const pane = menuContainer.closest(".cdk-overlay-pane");
+        if (pane) {
+          pane.style.height = "auto"; // 解除原生限制
+          pane.style.maxHeight = "75vh"; // 給予足夠高度
+        }
+        menuContainer.style.height = "auto";
+        menuContainer.style.maxHeight = "75vh";
+        content.style.maxHeight = "75vh";
+        content.style.overflowY = "auto"; // 開啟捲軸
 
-                    btn.onmouseenter = () => { btn.style.background = 'var(--bg-tertiary)'; };
-                    btn.onmouseleave = () => { btn.style.background = 'transparent'; };
+        // Add header
+        const header = document.createElement("div");
+        header.textContent = "🔒 Private GEMs (Local)";
+        header.style.fontSize = "12px";
+        header.style.color = "var(--text-muted)";
+        header.style.padding = "12px 16px 4px 16px";
+        header.style.fontWeight = "700";
+        header.style.letterSpacing = "0.5px";
+        header.style.borderTop = "1px solid var(--border-color)";
+        header.style.marginTop = "4px";
+        content.appendChild(header);
 
-                    btn.innerHTML = `
+        CONFIG.CUSTOM_GEMS.forEach((gem) => {
+          const btn = document.createElement("button");
+          // 模擬官方行為
+          btn.className = "mat-mdc-menu-item mat-mdc-focus-indicator";
+          btn.role = "menuitem";
+          btn.style.display = "flex";
+          btn.style.alignItems = "center";
+          btn.style.gap = "12px";
+          btn.style.minHeight = "52px";
+          btn.style.width = "100%";
+          btn.style.background = "transparent";
+          btn.style.border = "none";
+          btn.style.cursor = "pointer";
+          btn.style.padding = "8px 16px";
+          btn.style.transition = "background 0.2s ease";
+
+          btn.onmouseenter = () => {
+            btn.style.background = "var(--bg-tertiary)";
+          };
+          btn.onmouseleave = () => {
+            btn.style.background = "transparent";
+          };
+
+          btn.innerHTML = `
                         <span style="font-size: 20px; flex-shrink: 0;">${gem.icon}</span>
                         <div style="display: flex; flex-direction: column; text-align: left;">
                             <span style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px;">${gem.title}</span>
@@ -3662,321 +4335,385 @@
                         </div>
                     `;
 
-                    // 攔截滑鼠下壓事件，以防原生選單在我們點擊前 blur 消失
-                    btn.addEventListener('mousedown', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    });
+          // 攔截滑鼠下壓事件，以防原生選單在我們點擊前 blur 消失
+          btn.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          });
 
-                    // 使用 click 作為確認，體驗與原生一致
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+          // 使用 click 作為確認，體驗與原生一致
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
 
-                        // 1. 關閉原生的 Overlay 遮罩
-                        const backdrop = document.querySelector('.cdk-overlay-backdrop');
-                        if (backdrop) backdrop.click();
+            // 1. 關閉原生的 Overlay 遮罩
+            const backdrop = document.querySelector(".cdk-overlay-backdrop");
+            if (backdrop) backdrop.click();
 
-                        // 隱藏目前選單
-                        const wrapper = menuContainer.closest('.cdk-overlay-container, .cdk-overlay-connected-position-bounding-box');
-                        if (wrapper && wrapper.parentElement) {
-                            // 提供一個稍微優雅的關閉
-                            wrapper.style.display = 'none';
-                        }
-
-                        // 2. 準備注入提示詞
-                        setTimeout(() => {
-                            this.applyGem(gem.prompt);
-                        }, 50);
-                    });
-
-                    content.appendChild(btn);
-                });
-
-                // 強制觸發 Window Resize 向 Angular 廣播重繪，解決版面遮擋
-                window.dispatchEvent(new Event('resize'));
-            }, 100);
-        }
-
-applyGem(promptText) {
-            const editor = document.querySelector('.ql-editor');
-            if (!editor) return;
-
-            editor.focus();
-
-            // === HPC & 高可靠度：精確選區 `@` 標記清除狀態機 ===
-            const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0) {
-                const range = sel.getRangeAt(0);
-                let node = range.startContainer;
-                let offset = range.startOffset;
-
-                // 邊界防禦：若當前節點非文字節點，嘗試向下探查首個子文字節點
-                if (node.nodeType !== Node.TEXT_NODE && node.childNodes.length > 0) {
-                    const targetChild = node.childNodes[Math.min(offset, node.childNodes.length - 1)];
-                    if (targetChild && targetChild.nodeType === Node.TEXT_NODE) {
-                        node = targetChild;
-                        offset = node.textContent.length;
-                    }
-                }
-
-                // O(1) 局部快取回溯法：僅在當前游標附近的文字節點內快速尋找 `@`
-                if (node.nodeType === Node.TEXT_NODE) {
-                    const text = node.textContent;
-                    // 核心算法：從當前光標位置向左搜尋最近的 '@'
-                    const atIndex = text.lastIndexOf('@', offset - 1);
-
-                    if (atIndex !== -1) {
-                        // 建立原子操作邊界 (Atomic Range Selection)
-                        range.setStart(node, atIndex);
-                        range.setEnd(node, offset);
-
-                        // 高效記憶體操作：直接執行 V8 引擎優化的刪除，避免全字串重繪
-                        range.deleteContents();
-                    }
-                }
-            }
-
-            // 雙重安全降級機制 (Fallback)：若 Selection 狀態被 Angular 強制重置，執行低成本的正則微創手術
-            const currentHTML = editor.innerHTML;
-            if (currentHTML.includes('@')) {
-                // 僅針對光標可能殘留的最末端段落之空 `@` 標記進行 O(1) 替換，絕不全量重繪以免遺失節點結構
-                const lastParagraph = editor.lastElementChild;
-                if (lastParagraph && lastParagraph.innerHTML.trim() === '@') {
-                    lastParagraph.innerHTML = '<br>'; // 維持富文本空行佔位
-                }
-            }
-
-            // 執行原有的高效文字貼上注入
-            this.execInsert(promptText);
-
-            // 如果輸入框是折疊的，強制展開，讓使用者可以看到填入的文字
-            const smartContainer = document.querySelector('.gemini-ui-smart-container.gemini-ui-collapsed');
-            if (smartContainer) {
-                smartContainer.classList.remove('gemini-ui-collapsed');
-                smartContainer.classList.add('gemini-ui-expanded');
-            }
-        }
-
-        execInsert(text) {
-            const editor = document.querySelector('.ql-editor');
-            if (!editor) return;
-
-            // 工業級文本插入法: 使用 ClipboardEvent 進行原生貼上模擬 (與 Quill 最為相容)
-            const dataTransfer = new DataTransfer();
-            dataTransfer.setData('text/plain', text);
-            const pasteEvent = new ClipboardEvent('paste', {
-                clipboardData: dataTransfer,
-                bubbles: true,
-                cancelable: true
-            });
-
-            editor.dispatchEvent(pasteEvent);
-
-            if (!pasteEvent.defaultPrevented) {
-                // 退回使用 execCommand
-                const success = document.execCommand('insertText', false, text);
-                if (!success) {
-                    log('execCommand fallback for text injection');
-                    const textNode = document.createTextNode(text);
-                    const sel = window.getSelection();
-                    if (sel.rangeCount > 0) {
-                        const range = sel.getRangeAt(0);
-                        range.insertNode(textNode);
-                        range.setStartAfter(textNode);
-                        range.setEndAfter(textNode);
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                    }
-                }
-            }
-
-            // 觸發更新事件
-            editor.dispatchEvent(new Event('input', { bubbles: true }));
-            editor.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-    }
-
-    /* --- § 13. Initialization & MutationObserver --- */
-    function init() {
-        const browserInfo = CONFIG.IS_IOS ? 'iOS Safari' : CONFIG.IS_CHROME ? 'Chrome' : CONFIG.IS_FIREFOX ? 'Firefox' : 'Unknown';
-        log(`🚀 Initializing Gemini Unified v6.0 Industrial UX on ${browserInfo}…`);
-
-        /* === v6.0 Industrial UX: Initialize Enhanced Features === */
-        // 1. Reading Progress Bar
-        Utils.initReadingProgress();
-
-        // 2. Load persisted state (example: theme preference, collapsed states)
-        if (CONFIG.STATE_PERSISTENCE_ENABLED) {
-            const savedTheme = Utils.loadState('gemini-theme-preference');
-            if (savedTheme) {
-                log('✓ Restored saved theme preference:', savedTheme);
-            }
-        }
-
-        // 3. Initialize Visual Aura Engine & Auto-Collapse Panel
-        try {
-            const uiManager = new UIImprovementsManager();
-            uiManager.init();
-        } catch (e) {
-            log('Aura Engine initialization failed:', e);
-        }
-
-        /* === v6.0 Private GEMs Manager === */
-        try {
-            const gemsManager = new PrivateGEMsManager();
-            gemsManager.init();
-            log('✓ Private GEMs Manager initialized.');
-        } catch (e) {
-            log('Private GEMs initialization failed:', e);
-        }
-
-        /* 初始掃描 */
-        Processor.scan();
-
-        const debouncedScan = Utils.debounce(Processor.scan, CONFIG.DEBOUNCE_MS);
-
-        /* 統一 MutationObserver */
-        const observer = new MutationObserver((mutations) => {
-            let hasChanges = false;
-            for (const mutation of mutations) {
-                if (mutation.type !== 'childList' || !mutation.addedNodes.length) continue;
-                hasChanges = true;
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType !== 1) continue;
-                    /* A：code-block 容器 */
-                    if (node.matches && node.matches('div.code-block')) injectSmartRenderButton(node);
-                    if (node.querySelectorAll) node.querySelectorAll('div.code-block').forEach(injectSmartRenderButton);
-                    /* A：Pollinations 連結 */
-                    if (node.matches && node.matches('a[href*="image.pollinations.ai"]')) renderPollinationsLink(node);
-                    if (node.querySelectorAll) node.querySelectorAll('a[href*="image.pollinations.ai"]').forEach(renderPollinationsLink);
-                }
-            }
-            if (hasChanges) {
-                log('DOM changed → debounced scan');
-                debouncedScan();
-            }
-        });
-
-        observer.observe(document.body, {
-            childList:     true,
-            subtree:       true,
-            attributes:    false,
-            characterData: false
-        });
-
-        /* === v6.0 Industrial UX: Enhanced Keyboard Navigation === */
-        document.addEventListener('keydown', (e) => {
-            // Alt+M: Mermaid Live shortcut (existing)
-            if (e.altKey && e.code === 'KeyM') {
-                e.preventDefault();
-                const sel = window.getSelection().toString();
-                if (isMermaidCode(sel)) {
-                    const encoded = Utils.base64UrlEncode(JSON.stringify({ code: sel, mermaid: { theme: 'dark' } }));
-                    if (encoded) {
-                        Utils.openUrl(`https://mermaid.live/edit#base64:${encoded}`);
-                        Utils.showToast('✓ 快捷鍵啟動 (Alt+M)');
-                    }
-                }
-            }
-
-            // Ctrl+Shift+K: Toggle keyboard navigation highlight
-            if (CONFIG.KEYBOARD_NAV_ENABLED && e.ctrlKey && e.shiftKey && e.code === 'KeyK') {
-                e.preventDefault();
-                const activeElement = document.activeElement;
-                if (activeElement) {
-                    Utils.highlightForKeyboard(activeElement);
-                    Utils.showToast('⌨️ 鍵盤導航高亮');
-                }
-            }
-
-            // J/K: Scroll through conversation (vim-style)
-            if (CONFIG.KEYBOARD_NAV_ENABLED && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                if (e.code === 'KeyJ') {
-                    window.scrollBy({ top: 300, behavior: 'smooth' });
-                } else if (e.code === 'KeyK') {
-                    window.scrollBy({ top: -300, behavior: 'smooth' });
-                }
-            }
-        });
-
-        /* === v6.0 Industrial UX: Gesture Support (Touch Devices) === */
-        if (CONFIG.IS_TOUCH) {
-            let touchStartX = 0;
-            let touchStartY = 0;
-
-            document.addEventListener('touchstart', (e) => {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }, { passive: true });
-
-            document.addEventListener('touchend', (e) => {
-                if (!touchStartX || !touchStartY) return;
-
-                const touchEndX = e.changedTouches[0].clientX;
-                const touchEndY = e.changedTouches[0].clientY;
-
-                const deltaX = touchEndX - touchStartX;
-                const deltaY = touchEndY - touchStartY;
-
-                // Horizontal swipe detection
-                if (Math.abs(deltaX) > CONFIG.GESTURE_SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
-                    const target = e.target.closest('.tm-action-btn, .gemini-render-button');
-                    if (target) {
-                        if (deltaX > 0) {
-                            target.classList.add('tm-swipe-right');
-                        } else {
-                            target.classList.add('tm-swipe-left');
-                        }
-                        setTimeout(() => target.classList.remove('tm-swipe-left', 'tm-swipe-right'), 300);
-                    }
-                }
-
-                touchStartX = 0;
-                touchStartY = 0;
-            }, { passive: true });
-        }
-
-        /* 頁面卸載：釋放所有 Blob URL */
-        window.addEventListener('beforeunload', () => {
-            observer.disconnect();
-            document.querySelectorAll('[data-blob-url]').forEach(el => {
-                if (el.dataset.blobUrl) URL.revokeObjectURL(el.dataset.blobUrl);
-            });
-            // Save current state before unload
-            Utils.saveState('last-visit', Date.now());
-        });
-
-        /* 啟動 Banner */
-        const platformStr = CONFIG.IS_IOS ? '📱 iOS (Blob)' : CONFIG.IS_CHROME ? '🖥 Chrome' : CONFIG.IS_FIREFOX ? '🦊 Firefox' : '🌐 Other';
-        Utils.showToast(`✨ v6.0 Industrial UX 已啟動 (${platformStr})<br>微互動 + 骨架螢幕 + 手勢控制 + 鍵盤導航 + 狀態持久化`, 4000);
-
-        if (CONFIG.DEBUG) {
-            console.log(
-                '%c🚀 Gemini Unified v6.0 Industrial UX 已啟動',
-                'background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; padding: 12px 20px; border-radius: 10px; font-weight: bold; font-size: 14px;'
+            // 隱藏目前選單
+            const wrapper = menuContainer.closest(
+              ".cdk-overlay-container, .cdk-overlay-connected-position-bounding-box",
             );
-            console.log('平台:', platformStr, '| iOS:', CONFIG.IS_IOS, '| Chrome:', CONFIG.IS_CHROME);
-            console.log('v6.0 Features:', {
-                microInteractions: true,
-                skeletonLoading: CONFIG.SKELETON_ENABLED,
-                gestureControl: CONFIG.IS_TOUCH,
-                keyboardNav: CONFIG.KEYBOARD_NAV_ENABLED,
-                statePersistence: CONFIG.STATE_PERSISTENCE_ENABLED,
-                readingProgress: true,
-                smartTooltips: true
-            });
+            if (wrapper && wrapper.parentElement) {
+              // 提供一個稍微優雅的關閉
+              wrapper.style.display = "none";
+            }
+
+            // 2. 準備注入提示詞
+            setTimeout(() => {
+              this.applyGem(gem.prompt);
+            }, 50);
+          });
+
+          content.appendChild(btn);
+        });
+
+        // 強制觸發 Window Resize 向 Angular 廣播重繪，解決版面遮擋
+        window.dispatchEvent(new Event("resize"));
+      }, 100);
+    }
+
+    applyGem(promptText) {
+      const editor = document.querySelector(".ql-editor");
+      if (!editor) return;
+
+      editor.focus();
+
+      // === HPC & 高可靠度：精確選區 `@` 標記清除狀態機 ===
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        let node = range.startContainer;
+        let offset = range.startOffset;
+
+        // 邊界防禦：若當前節點非文字節點，嘗試向下探查首個子文字節點
+        if (node.nodeType !== Node.TEXT_NODE && node.childNodes.length > 0) {
+          const targetChild =
+            node.childNodes[Math.min(offset, node.childNodes.length - 1)];
+          if (targetChild && targetChild.nodeType === Node.TEXT_NODE) {
+            node = targetChild;
+            offset = node.textContent.length;
+          }
         }
 
-        log('✅ Initialization completed');
+        // O(1) 局部快取回溯法：僅在當前游標附近的文字節點內快速尋找 `@`
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent;
+          // 核心算法：從當前光標位置向左搜尋最近的 '@'
+          const atIndex = text.lastIndexOf("@", offset - 1);
+
+          if (atIndex !== -1) {
+            // 建立原子操作邊界 (Atomic Range Selection)
+            range.setStart(node, atIndex);
+            range.setEnd(node, offset);
+
+            // 高效記憶體操作：直接執行 V8 引擎優化的刪除，避免全字串重繪
+            range.deleteContents();
+          }
+        }
+      }
+
+      // 雙重安全降級機制 (Fallback)：若 Selection 狀態被 Angular 強制重置，執行低成本的正則微創手術
+      const currentHTML = editor.innerHTML;
+      if (currentHTML.includes("@")) {
+        // 僅針對光標可能殘留的最末端段落之空 `@` 標記進行 O(1) 替換，絕不全量重繪以免遺失節點結構
+        const lastParagraph = editor.lastElementChild;
+        if (lastParagraph && lastParagraph.innerHTML.trim() === "@") {
+          lastParagraph.innerHTML = "<br>"; // 維持富文本空行佔位
+        }
+      }
+
+      // 執行原有的高效文字貼上注入
+      this.execInsert(promptText);
+
+      // 如果輸入框是折疊的，強制展開，讓使用者可以看到填入的文字
+      const smartContainer = document.querySelector(
+        ".gemini-ui-smart-container.gemini-ui-collapsed",
+      );
+      if (smartContainer) {
+        smartContainer.classList.remove("gemini-ui-collapsed");
+        smartContainer.classList.add("gemini-ui-expanded");
+      }
     }
 
-    /* 啟動時機控制 */
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        /* Chrome 額外延遲：DOM 完全穩定後再啟動 */
-        CONFIG.IS_CHROME ? setTimeout(init, 100) : init();
+    execInsert(text) {
+      const editor = document.querySelector(".ql-editor");
+      if (!editor) return;
+
+      // 工業級文本插入法: 使用 ClipboardEvent 進行原生貼上模擬 (與 Quill 最為相容)
+      const dataTransfer = new DataTransfer();
+      dataTransfer.setData("text/plain", text);
+      const pasteEvent = new ClipboardEvent("paste", {
+        clipboardData: dataTransfer,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      editor.dispatchEvent(pasteEvent);
+
+      if (!pasteEvent.defaultPrevented) {
+        // 退回使用 execCommand
+        const success = document.execCommand("insertText", false, text);
+        if (!success) {
+          log("execCommand fallback for text injection");
+          const textNode = document.createTextNode(text);
+          const sel = window.getSelection();
+          if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }
+      }
+
+      // 觸發更新事件
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+      editor.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  /* --- § 13. Initialization & MutationObserver --- */
+  function init() {
+    const browserInfo = CONFIG.IS_IOS
+      ? "iOS Safari"
+      : CONFIG.IS_CHROME
+        ? "Chrome"
+        : CONFIG.IS_FIREFOX
+          ? "Firefox"
+          : "Unknown";
+    log(`🚀 Initializing Gemini Unified v6.0 Industrial UX on ${browserInfo}…`);
+
+    /* === v6.0 Industrial UX: Initialize Enhanced Features === */
+    // 1. Reading Progress Bar
+    Utils.initReadingProgress();
+
+    // 2. Load persisted state (example: theme preference, collapsed states)
+    if (CONFIG.STATE_PERSISTENCE_ENABLED) {
+      const savedTheme = Utils.loadState("gemini-theme-preference");
+      if (savedTheme) {
+        log("✓ Restored saved theme preference:", savedTheme);
+      }
     }
 
+    // 3. Initialize Visual Aura Engine & Auto-Collapse Panel
+    try {
+      const uiManager = new UIImprovementsManager();
+      uiManager.init();
+    } catch (e) {
+      log("Aura Engine initialization failed:", e);
+    }
+
+    /* === v6.0 Private GEMs Manager === */
+    try {
+      const gemsManager = new PrivateGEMsManager();
+      gemsManager.init();
+      log("✓ Private GEMs Manager initialized.");
+    } catch (e) {
+      log("Private GEMs initialization failed:", e);
+    }
+
+    /* 初始掃描 */
+    Processor.scan();
+
+    const debouncedScan = Utils.debounce(Processor.scan, CONFIG.DEBOUNCE_MS);
+
+    /* 統一 MutationObserver */
+    const observer = new MutationObserver((mutations) => {
+      let hasChanges = false;
+      for (const mutation of mutations) {
+        if (mutation.type !== "childList" || !mutation.addedNodes.length)
+          continue;
+        hasChanges = true;
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== 1) continue;
+          /* A：code-block 容器 */
+          if (node.matches && node.matches("div.code-block"))
+            injectSmartRenderButton(node);
+          if (node.querySelectorAll)
+            node
+              .querySelectorAll("div.code-block")
+              .forEach(injectSmartRenderButton);
+          /* A：Pollinations 連結 */
+          if (node.matches && node.matches('a[href*="image.pollinations.ai"]'))
+            renderPollinationsLink(node);
+          if (node.querySelectorAll)
+            node
+              .querySelectorAll('a[href*="image.pollinations.ai"]')
+              .forEach(renderPollinationsLink);
+        }
+      }
+      if (hasChanges) {
+        log("DOM changed → debounced scan");
+        debouncedScan();
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: false,
+      characterData: false,
+    });
+
+    /* === v6.0 Industrial UX: Enhanced Keyboard Navigation === */
+    document.addEventListener("keydown", (e) => {
+      // Alt+M: Mermaid Live shortcut (existing)
+      if (e.altKey && e.code === "KeyM") {
+        e.preventDefault();
+        const sel = window.getSelection().toString();
+        if (isMermaidCode(sel)) {
+          const encoded = Utils.base64UrlEncode(
+            JSON.stringify({ code: sel, mermaid: { theme: "dark" } }),
+          );
+          if (encoded) {
+            Utils.openUrl(`https://mermaid.live/edit#base64:${encoded}`);
+            Utils.showToast("✓ 快捷鍵啟動 (Alt+M)");
+          }
+        }
+      }
+
+      // Ctrl+Shift+K: Toggle keyboard navigation highlight
+      if (
+        CONFIG.KEYBOARD_NAV_ENABLED &&
+        e.ctrlKey &&
+        e.shiftKey &&
+        e.code === "KeyK"
+      ) {
+        e.preventDefault();
+        const activeElement = document.activeElement;
+        if (activeElement) {
+          Utils.highlightForKeyboard(activeElement);
+          Utils.showToast("⌨️ 鍵盤導航高亮");
+        }
+      }
+
+      // J/K: Scroll through conversation (vim-style)
+      if (
+        CONFIG.KEYBOARD_NAV_ENABLED &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey
+      ) {
+        if (e.code === "KeyJ") {
+          window.scrollBy({ top: 300, behavior: "smooth" });
+        } else if (e.code === "KeyK") {
+          window.scrollBy({ top: -300, behavior: "smooth" });
+        }
+      }
+    });
+
+    /* === v6.0 Industrial UX: Gesture Support (Touch Devices) === */
+    if (CONFIG.IS_TOUCH) {
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      document.addEventListener(
+        "touchstart",
+        (e) => {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "touchend",
+        (e) => {
+          if (!touchStartX || !touchStartY) return;
+
+          const touchEndX = e.changedTouches[0].clientX;
+          const touchEndY = e.changedTouches[0].clientY;
+
+          const deltaX = touchEndX - touchStartX;
+          const deltaY = touchEndY - touchStartY;
+
+          // Horizontal swipe detection
+          if (
+            Math.abs(deltaX) > CONFIG.GESTURE_SWIPE_THRESHOLD &&
+            Math.abs(deltaX) > Math.abs(deltaY)
+          ) {
+            const target = e.target.closest(
+              ".tm-action-btn, .gemini-render-button",
+            );
+            if (target) {
+              if (deltaX > 0) {
+                target.classList.add("tm-swipe-right");
+              } else {
+                target.classList.add("tm-swipe-left");
+              }
+              setTimeout(
+                () =>
+                  target.classList.remove("tm-swipe-left", "tm-swipe-right"),
+                300,
+              );
+            }
+          }
+
+          touchStartX = 0;
+          touchStartY = 0;
+        },
+        { passive: true },
+      );
+    }
+
+    /* 頁面卸載：釋放所有 Blob URL */
+    window.addEventListener("beforeunload", () => {
+      observer.disconnect();
+      document.querySelectorAll("[data-blob-url]").forEach((el) => {
+        if (el.dataset.blobUrl) URL.revokeObjectURL(el.dataset.blobUrl);
+      });
+      // Save current state before unload
+      Utils.saveState("last-visit", Date.now());
+    });
+
+    /* 啟動 Banner */
+    const platformStr = CONFIG.IS_IOS
+      ? "📱 iOS (Blob)"
+      : CONFIG.IS_CHROME
+        ? "🖥 Chrome"
+        : CONFIG.IS_FIREFOX
+          ? "🦊 Firefox"
+          : "🌐 Other";
+    Utils.showToast(
+      `✨ v6.0 Industrial UX 已啟動 (${platformStr})<br>微互動 + 骨架螢幕 + 手勢控制 + 鍵盤導航 + 狀態持久化`,
+      4000,
+    );
+
+    if (CONFIG.DEBUG) {
+      console.log(
+        "%c🚀 Gemini Unified v6.0 Industrial UX 已啟動",
+        "background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: white; padding: 12px 20px; border-radius: 10px; font-weight: bold; font-size: 14px;",
+      );
+      console.log(
+        "平台:",
+        platformStr,
+        "| iOS:",
+        CONFIG.IS_IOS,
+        "| Chrome:",
+        CONFIG.IS_CHROME,
+      );
+      console.log("v6.0 Features:", {
+        microInteractions: true,
+        skeletonLoading: CONFIG.SKELETON_ENABLED,
+        gestureControl: CONFIG.IS_TOUCH,
+        keyboardNav: CONFIG.KEYBOARD_NAV_ENABLED,
+        statePersistence: CONFIG.STATE_PERSISTENCE_ENABLED,
+        readingProgress: true,
+        smartTooltips: true,
+      });
+    }
+
+    log("✅ Initialization completed");
+  }
+
+  /* 啟動時機控制 */
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    /* Chrome 額外延遲：DOM 完全穩定後再啟動 */
+    CONFIG.IS_CHROME ? setTimeout(init, 100) : init();
+  }
 })();
