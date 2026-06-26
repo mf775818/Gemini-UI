@@ -4708,6 +4708,44 @@ const HpcTableAutofitEngine = {
       4000,
     );
 
+    /* === v6.0 Industrial UX: iOS Capsule Mode (Auto-Hide Toolbar) === */
+    if (CONFIG.IS_IOS) {
+        setTimeout(() => {
+            try {
+                // 創造虛擬滾動空間確保絕對可以觸發 Safari 隱藏機制
+                const scrollForcer = document.createElement('div');
+                scrollForcer.id = 'tm-ios-scroll-forcer';
+                scrollForcer.style.cssText = 'position:absolute; width:1px; height:150vh; top:0; left:0; z-index:-9999; pointer-events:none; visibility:hidden;';
+                document.body.appendChild(scrollForcer);
+                
+                // 第一次跳轉觸發
+                window.scrollTo(0, 1);
+                
+                // 模擬真實滑動以觸發 iOS 15+ 底部膠囊列縮放
+                setTimeout(() => {
+                    window.scrollTo({ top: 120, behavior: 'smooth' });
+                    
+                    // 等待動畫完成後微調並清理
+                    setTimeout(() => {
+                        window.scrollTo({ top: 1, behavior: 'auto' });
+                        // 移除虛擬空間，若當前頁面夠長則保持現狀，否則 Safari 可能會彈回
+                        // 但為了防止頁面底部出現大片空白，在一段時間後將其移除或減小
+                        setTimeout(() => {
+                            if (document.body.scrollHeight > window.innerHeight + 10) {
+                                scrollForcer.remove();
+                            } else {
+                                scrollForcer.style.height = 'calc(100vh + 2px)'; // 維持最小可滾動狀態以保持膠囊化
+                            }
+                        }, 500);
+                    }, 400);
+                }, 50);
+            } catch (e) {
+                console.warn('[Gemini Ultimate] iOS Capsule Mode trigger failed:', e);
+            }
+        }, 800); // 確保在 Toast 之後執行
+    }
+
+
     if (CONFIG.DEBUG) {
       console.log(
         "%c🚀 Gemini Unified v6.0 Industrial UX 已啟動",
