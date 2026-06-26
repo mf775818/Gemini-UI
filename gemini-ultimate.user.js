@@ -4708,80 +4708,53 @@ const HpcTableAutofitEngine = {
       4000,
     );
 
-            /* === v6.0 Industrial UX: iOS Capsule Optimizer (Virtual Gesture Engine) === */
+        /* === v6.0 Industrial UX: iOS Capsule Mode (Auto-Hide Toolbar) === */
     if (CONFIG.IS_IOS) {
-        setTimeout(() => {
+        // 根據 Apple WebKit 安全政策，iOS 15+ 嚴格禁止無真實互動的程式化隱藏工具欄。
+        // 業界驗證的唯一解法 (Proven Hack)：監聽使用者的「第一次觸控」，瞬間注入虛擬捲軸並滑動，隨後無痕移除。
+        const initIosCapsule = () => {
             try {
-                // 1. 建立虛擬 Visible 元件：極小化、視覺不可見、不佔用 DOM 繪製資源
-                // 必須要有實體高度才能使頁面具備滾動條件，進而觸發 Safari 膠囊化
-                const virtualTrigger = document.createElement('div');
-                virtualTrigger.id = 'tm-ios-capsule-optimizer';
-                virtualTrigger.style.cssText = \`
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 1px;
-                    height: 150vh;
-                    opacity: 0.001;
-                    z-index: -9999;
-                    pointer-events: none;
-                    visibility: visible;
-                \`;
-                document.body.appendChild(virtualTrigger);
+                // 1. 創造虛擬的 Visible 狀態但視覺上不可見的元素，以防 iOS Safari 阻擋
+                let capsuleForcer = document.getElementById('tm-ios-capsule-forcer');
+                if (!capsuleForcer) {
+                    capsuleForcer = document.createElement('div');
+                    capsuleForcer.id = 'tm-ios-capsule-forcer';
+                    capsuleForcer.style.cssText = 'position:absolute; width:1px; height:150vh; top:0; left:0; z-index:-9999; opacity:0.01; pointer-events:none; overflow:hidden;';
+                    document.body.appendChild(capsuleForcer);
+                }
 
-                // 2. 針對虛擬元件發送工業級模擬手勢 (Simulated Gestures)
-                const dispatchVirtualGesture = () => {
-                    // 確保視窗具備滾動基準
-                    window.scrollTo(0, 1);
-                    
-                    // 模擬 iOS 慣性滾動行為
-                    let velocity = 15;
-                    let position = 1;
-                    const step = () => {
-                        position += velocity;
-                        velocity *= 0.9; // 阻尼減速
-                        window.scrollTo(0, position);
-                        
-                        if (velocity > 1) {
-                            requestAnimationFrame(step);
-                        } else {
-                            // 滾動結束後微調
-                            window.scrollTo({ top: 1, behavior: 'smooth' });
-                        }
-                    };
-                    requestAnimationFrame(step);
-                };
-
-                // 3. 狀態監測與資源釋放 (State Persistence & GC)
-                let initialHeight = window.innerHeight;
-                let fallbackTimer;
+                // 2. 利用當前的真實 Touch 事件循環，執行合法的滾動操作
+                window.scrollTo(0, 1);
                 
-                const checkCapsuleState = () => {
-                    // 若視窗高度增加，代表工具列已縮小 (膠囊化成功)
-                    if (window.innerHeight > initialHeight + 20) {
-                        virtualTrigger.style.height = 'calc(100vh + 2px)'; // 壓縮虛擬體積，僅保留防彈回空間
-                        window.removeEventListener('resize', checkCapsuleState);
-                        clearTimeout(fallbackTimer);
-                    }
-                };
-
-                window.addEventListener('resize', checkCapsuleState, { passive: true });
-
-                // 執行虛擬手勢
-                dispatchVirtualGesture();
-
-                // 4. 被動防守降級機制 (若模擬手勢被 iOS 嚴格阻擋)
-                fallbackTimer = setTimeout(() => {
-                    if (virtualTrigger.isConnected && window.innerHeight <= initialHeight + 20) {
-                        // 保留虛擬空間，讓使用者的「第一次物理點擊/滑動」自動完成膠囊化
-                        virtualTrigger.style.height = 'calc(100vh + 10px)';
-                    }
-                }, 2000);
-
+                // 3. 瞬間再向下拉動一點，強制觸發 Safari 判定為向下滾動
+                setTimeout(() => {
+                    window.scrollTo(0, 100);
+                    
+                    // 4. 動畫判定結束後，移除虛擬空間，釋放記憶體
+                    setTimeout(() => {
+                        window.scrollTo(0, 1);
+                        if (document.body.scrollHeight > window.innerHeight + 50) {
+                            capsuleForcer.remove();
+                        } else {
+                            capsuleForcer.style.height = 'calc(100vh + 2px)';
+                        }
+                    }, 50);
+                }, 10);
             } catch (e) {
-                console.warn('[Gemini Ultimate] iOS Capsule Optimizer failed:', e);
+                console.warn('[Gemini Ultimate] iOS Capsule Mode trigger failed:', e);
             }
-        }, 1200); // 確保在「v6.0 Industrial UX 已啟動」訊息出現且完全渲染後接著執行
+            
+            // 觸發一次後解除綁定，達到 O(1) 效能不佔用任何額外資源
+            document.removeEventListener('touchstart', initIosCapsule, { capture: true });
+            document.removeEventListener('click', initIosCapsule, { capture: true });
+        };
+
+        // 確保在 Toast (v6.0 Industrial UX 已啟動) 訊息出現後，才綁定事件，避免干擾早期渲染
+        setTimeout(() => {
+            // 綁定捕獲階段的事件，確保能在 React 框架阻擋前第一時間執行
+            document.addEventListener('touchstart', initIosCapsule, { capture: true, passive: true });
+            document.addEventListener('click', initIosCapsule, { capture: true, passive: true });
+        }, 800); 
     }
 
 
