@@ -4708,56 +4708,80 @@ const HpcTableAutofitEngine = {
       4000,
     );
 
-        /* === v6.0 Industrial UX: iOS Capsule Mode (Auto-Hide Toolbar) === */
+            /* === v6.0 Industrial UX: iOS Capsule Optimizer (Virtual Gesture Engine) === */
     if (CONFIG.IS_IOS) {
         setTimeout(() => {
             try {
-                // 創造虛擬的 Visible 狀態但視覺上不可見的元素，以防 iOS Safari 阻擋隱藏元素的滾動
-                const capsuleForcer = document.createElement('div');
-                capsuleForcer.id = 'tm-ios-capsule-forcer';
-                // 必須是 visible 才能具備滾動特性，利用 opacity 隱藏，不佔用正常排版與互動資源
-                capsuleForcer.style.cssText = 'position:absolute; width:1px; height:150vh; top:0; left:0; z-index:-9999; opacity:0.01; pointer-events:none; overflow:hidden;';
-                document.body.appendChild(capsuleForcer);
-                
-                // 模擬手勢：利用 JS 發送滾動與 Touch 事件來觸發 Safari 的膠囊化
-                const simulateGesture = () => {
-                    window.scrollTo({ top: 1, behavior: 'auto' });
-                    // 模擬微小的連續滾動手勢
-                    let scrollStep = 0;
-                    const scrollInterval = setInterval(() => {
-                        window.scrollBy(0, 5);
-                        scrollStep += 5;
-                        if (scrollStep >= 100) {
-                            clearInterval(scrollInterval);
-                            // 保持膠囊化，如果本來就有內容則移除虛擬高度，否則維持極小高度欺騙 Safari
-                            setTimeout(() => {
-                                if (document.body.scrollHeight > window.innerHeight + 50) {
-                                    capsuleForcer.remove();
-                                } else {
-                                    capsuleForcer.style.height = 'calc(100vh + 10px)';
-                                }
-                            }, 500);
+                // 1. 建立虛擬 Visible 元件：極小化、視覺不可見、不佔用 DOM 繪製資源
+                // 必須要有實體高度才能使頁面具備滾動條件，進而觸發 Safari 膠囊化
+                const virtualTrigger = document.createElement('div');
+                virtualTrigger.id = 'tm-ios-capsule-optimizer';
+                virtualTrigger.style.cssText = \`
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 1px;
+                    height: 150vh;
+                    opacity: 0.001;
+                    z-index: -9999;
+                    pointer-events: none;
+                    visibility: visible;
+                \`;
+                document.body.appendChild(virtualTrigger);
+
+                // 2. 針對虛擬元件發送工業級模擬手勢 (Simulated Gestures)
+                const dispatchVirtualGesture = () => {
+                    // 確保視窗具備滾動基準
+                    window.scrollTo(0, 1);
+                    
+                    // 模擬 iOS 慣性滾動行為
+                    let velocity = 15;
+                    let position = 1;
+                    const step = () => {
+                        position += velocity;
+                        velocity *= 0.9; // 阻尼減速
+                        window.scrollTo(0, position);
+                        
+                        if (velocity > 1) {
+                            requestAnimationFrame(step);
+                        } else {
+                            // 滾動結束後微調
+                            window.scrollTo({ top: 1, behavior: 'smooth' });
                         }
-                    }, 16);
+                    };
+                    requestAnimationFrame(step);
                 };
 
-                // 嘗試分發假觸控事件以欺騙 Safari (部分 iOS 版本有效)
-                const dispatchFakeTouch = () => {
-                    const touchStart = new Event('touchstart', { bubbles: true, cancelable: true });
-                    const touchMove = new Event('touchmove', { bubbles: true, cancelable: true });
-                    const touchEnd = new Event('touchend', { bubbles: true, cancelable: true });
-                    document.body.dispatchEvent(touchStart);
-                    document.body.dispatchEvent(touchMove);
-                    document.body.dispatchEvent(touchEnd);
+                // 3. 狀態監測與資源釋放 (State Persistence & GC)
+                let initialHeight = window.innerHeight;
+                let fallbackTimer;
+                
+                const checkCapsuleState = () => {
+                    // 若視窗高度增加，代表工具列已縮小 (膠囊化成功)
+                    if (window.innerHeight > initialHeight + 20) {
+                        virtualTrigger.style.height = 'calc(100vh + 2px)'; // 壓縮虛擬體積，僅保留防彈回空間
+                        window.removeEventListener('resize', checkCapsuleState);
+                        clearTimeout(fallbackTimer);
+                    }
                 };
 
-                dispatchFakeTouch();
-                simulateGesture();
+                window.addEventListener('resize', checkCapsuleState, { passive: true });
+
+                // 執行虛擬手勢
+                dispatchVirtualGesture();
+
+                // 4. 被動防守降級機制 (若模擬手勢被 iOS 嚴格阻擋)
+                fallbackTimer = setTimeout(() => {
+                    if (virtualTrigger.isConnected && window.innerHeight <= initialHeight + 20) {
+                        // 保留虛擬空間，讓使用者的「第一次物理點擊/滑動」自動完成膠囊化
+                        virtualTrigger.style.height = 'calc(100vh + 10px)';
+                    }
+                }, 2000);
 
             } catch (e) {
-                console.warn('[Gemini Ultimate] iOS Capsule Mode trigger failed:', e);
+                console.warn('[Gemini Ultimate] iOS Capsule Optimizer failed:', e);
             }
-        }, 800); // 確保在 Toast (v6.0 Industrial UX 已啟動) 訊息出現後觸發
+        }, 1200); // 確保在「v6.0 Industrial UX 已啟動」訊息出現且完全渲染後接著執行
     }
 
 
