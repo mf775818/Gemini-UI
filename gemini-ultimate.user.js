@@ -1081,7 +1081,6 @@
         backdrop-filter: blur(8px) !important;
     }
 
-    /* 確保使用者氣泡內的文字排版正確 */
     user-query .content,
     .user-query .content,
     user-query .text,
@@ -1112,7 +1111,7 @@
     /* ── 對話邊界分隔線 (Chat Boundary Divider) ── */
 .tm-chat-divider {
     width: 100%;
-    margin-top: -3rem !important; /* 分支預測防守：抵消移動端原生巨大 block 間距 */
+    margin-top: -3rem !important;
     margin-bottom: 0.5rem !important;
     position: relative;
     display: flex;
@@ -1120,6 +1119,13 @@
     justify-content: center;
     clear: both;
     user-select: none;
+}
+
+@media (max-width: 768px) {
+    .tm-chat-divider {
+        margin-top: -2rem !important; /* 移動端分支預測防守：抵消原生巨大 block 間距，實現緊湊佈局 */
+        margin-bottom: 0.5rem !important;
+    }
 }
 
 .tm-chat-divider::before {
@@ -1139,7 +1145,7 @@
 }
 
 .tm-chat-divider::after {
-    content: '　'; 
+    content: '　';
     position: relative;
     color: var(--accent-yellow, #fabd2f);
     font-size: 0.85rem; /* 加大字型符合無障礙規範最低視覺標準 */
@@ -2606,7 +2612,7 @@
       setTimeout(() => element.classList.remove("tm-keyboard-highlight"), 2000);
     },
 
-    /* === v6.0 Industrial UX: Reading Progress === */
+    /* === v6.0 Industrial UX: Reading Progress (Time-driven Optimization) === */
     initReadingProgress() {
       let progressBar = document.querySelector(".tm-reading-progress");
       if (!progressBar) {
@@ -2614,13 +2620,21 @@
         progressBar.className = "tm-reading-progress";
         document.body.appendChild(progressBar);
       }
+
+      let ticking = false;
       window.addEventListener("scroll", () => {
-        const scrollTop = window.scrollY;
-        const docHeight =
-          document.documentElement.scrollHeight - window.innerHeight;
-        const progress = (scrollTop / docHeight) * 100;
-        progressBar.style.width = `${progress}%`;
-      });
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            const scrollTop = window.scrollY;
+            const docHeight =
+              document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (scrollTop / docHeight) * 100;
+            progressBar.style.width = `${progress}%`;
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }, { passive: true });
     },
 
     /* Base64 URL 安全編碼（用於 mermaid.live） */
@@ -2902,10 +2916,8 @@
         if (!overlay) {
           overlay = document.createElement("div");
           overlay.className = "tm-overlay";
-          overlay.style.paddingTop =
-            isMermaid && !overlay.querySelector(".tm-btn-mermaid") ? "0" : "2%";
-          overlay.style.paddingLeft =
-            isMermaid && !overlay.querySelector(".tm-btn-mermaid") ? "0" : "2%";
+          overlay.style.paddingTop = "2%";
+          overlay.style.paddingLeft = "2%";
           overlay.setAttribute(ATTR_CONTAINER_PROCESSED, "true");
           overlay.setAttribute("role", "group");
           overlay.setAttribute("aria-label", "代碼操作按鈕");
@@ -2954,7 +2966,7 @@
         };
 
         /* 標準 DOM */
-        document.body.querySelectorAll("code, pre").forEach(add);
+        document.body.querySelectorAll(`code:not([${ATTR_PROCESSED}]), pre:not([${ATTR_PROCESSED}])`).forEach(add);
 
         /* Shadow DOM */
         const walker = document.createTreeWalker(
@@ -2964,7 +2976,7 @@
         while (walker.nextNode()) {
           if (walker.currentNode.shadowRoot)
             walker.currentNode.shadowRoot
-              .querySelectorAll("code, pre")
+              .querySelectorAll(`code:not([${ATTR_PROCESSED}]), pre:not([${ATTR_PROCESSED}])`)
               .forEach(add);
         }
 
@@ -2983,12 +2995,12 @@
 
         /* A 系統：掃描 code-block 容器（互動渲染按鈕） */
         document
-          .querySelectorAll("div.code-block")
+          .querySelectorAll("div.code-block:not([data-smart-render-added='true'])")
           .forEach(injectSmartRenderButton);
 
         /* A 系統：掃描 Pollinations 連結 */
         document
-          .querySelectorAll('a[href*="image.pollinations.ai"]')
+          .querySelectorAll('a[href*="image.pollinations.ai"]:not([data-rendered])')
           .forEach(renderPollinationsLink);
 
         TableOptimizer.scanTables();
@@ -3082,8 +3094,8 @@ const HpcTableAutofitEngine = {
                         const cellW = rowCells[i].scrollWidth + 16;
                         if (cellW > idealWidths[i]) idealWidths[i] = cellW;
 
-                        // 累加字元長度以計算熵值
-                        textLengths[i] += (rowCells[i].innerText || rowCells[i].textContent || "").trim().length;
+                        // 累加字元長度以計算熵值 (使用 textContent 避免 Layout Thrashing)
+                        textLengths[i] += (rowCells[i].textContent || "").trim().length;
                     }
                 }
             });
@@ -3226,7 +3238,7 @@ const HpcTableAutofitEngine = {
       const table = tableContainer.querySelector("table");
       if (!table) return;
 
-      const sig = `${table.rows.length}_${table.innerText.length}`;
+      const sig = `${table.rows.length}_${table.textContent.length}`;
       const isProcessed = tableContainer.hasAttribute(this.tableProcessedAttr);
 
       if (isProcessed) {
@@ -3456,8 +3468,11 @@ const HpcTableAutofitEngine = {
             if (cellW > optimalWidth) optimalWidth = cellW;
           });
 
-          // 防呆限制：最窄 45px，最寬 500px，防止超長資料拉扁整張表格
-          optimalWidth = Math.min(500, Math.max(45, optimalWidth));
+          const parentWidth = table.parentElement ? table.parentElement.clientWidth : 0;
+          const containerWidth = parentWidth > 0 ? parentWidth : window.innerWidth * 0.85;
+          // HPC 防呆限制：上限不寫死，根據容器寬度動態分配 (最多可達 5000px)，確保不出現橫向卷軸
+          const maxAllowedWidth = Math.min(5000, containerWidth * 0.95);
+          optimalWidth = Math.min(maxAllowedWidth, Math.max(45, optimalWidth));
 
           // 5. 測量完成後，立刻無縫還原這張桌子所有 cell 的原始寬度與折行樣式
           allCellBackups.forEach((b) => {
@@ -3509,8 +3524,13 @@ const HpcTableAutofitEngine = {
           document.body.style.setProperty("cursor", "col-resize", "important");
           document.body.style.setProperty("user-select", "none", "important");
 
-          const onMouseMove = (moveEvent) => {
-            const dx = moveEvent.clientX - startX;
+          // Time-driven: Decouple mouse position from layout calculation
+          let ticking = false;
+          let pendingX = 0;
+
+          const updateLayout = () => {
+            if (!ticking) return;
+            const dx = pendingX - startX;
 
             let targetWidth = startWidth + dx;
             let targetNextWidth = nextStartWidth - dx;
@@ -3543,6 +3563,16 @@ const HpcTableAutofitEngine = {
 
             table.style.setProperty("width", "100%", "important");
             table.style.setProperty("min-width", "100%", "important");
+
+            ticking = false;
+          };
+
+          const onMouseMove = (moveEvent) => {
+            pendingX = moveEvent.clientX;
+            if (!ticking) {
+              ticking = true;
+              window.requestAnimationFrame(updateLayout);
+            }
           };
 
           const onMouseUp = () => {
@@ -3579,10 +3609,13 @@ const HpcTableAutofitEngine = {
             const startWidth = startWidths[colIndex];
             const nextStartWidth = startWidths[colIndex + 1];
 
-            const onTouchMove = (moveEvent) => {
-              if (moveEvent.touches.length !== 1) return;
-              const currentTouch = moveEvent.touches[0];
-              const dx = currentTouch.clientX - startX;
+            // Time-driven optimization
+            let ticking = false;
+            let pendingX = 0;
+
+            const updateLayoutTouch = () => {
+              if (!ticking) return;
+              const dx = pendingX - startX;
 
               let targetWidth = startWidth + dx;
               let targetNextWidth = nextStartWidth - dx;
@@ -3615,6 +3648,16 @@ const HpcTableAutofitEngine = {
 
               table.style.setProperty("width", "100%", "important");
               table.style.setProperty("min-width", "100%", "important");
+              ticking = false;
+            };
+
+            const onTouchMove = (moveEvent) => {
+              if (moveEvent.touches.length !== 1) return;
+              pendingX = moveEvent.touches[0].clientX;
+              if (!ticking) {
+                ticking = true;
+                window.requestAnimationFrame(updateLayoutTouch);
+              }
             };
 
             const onTouchEnd = () => {
@@ -3678,11 +3721,18 @@ const HpcTableAutofitEngine = {
   const ChatUIOptimizer = {
     scanChatBoundaries() {
       try {
-        const queries = Array.from(document.querySelectorAll('user-query, .user-query'));
-        if (queries.length <= 1) return; // 第一個對話輪次前不繪製邊界
+        const unprocessedQueries = document.querySelectorAll('user-query:not([data-tm-boundary-scanned]), .user-query:not([data-tm-boundary-scanned])');
+        if (unprocessedQueries.length === 0) return;
 
-        for (let i = 1; i < queries.length; i++) {
-          const query = queries[i];
+        // 需要知道這個 query 是不是整個對話串的第一個
+        const allQueries = document.querySelectorAll('user-query, .user-query');
+
+        unprocessedQueries.forEach(query => {
+          query.setAttribute('data-tm-boundary-scanned', 'true');
+
+          // 若為第一個對話，不插入分隔線
+          if (query === allQueries[0]) return;
+
           // 尋找包裹此 user-query 的最外層容器 (例如 message-row)
           let container = query.closest('message-row, .message-row, conversation-message, .conversation-message');
           const targetEl = container || query;
@@ -3690,13 +3740,13 @@ const HpcTableAutofitEngine = {
           // 檢查是否已經插入過分隔線
           const prevNode = targetEl.previousElementSibling;
           if (prevNode && prevNode.classList && prevNode.classList.contains('tm-chat-divider')) {
-            continue;
+            return;
           }
 
           const divider = document.createElement('div');
           divider.className = 'tm-chat-divider';
           targetEl.parentNode.insertBefore(divider, targetEl);
-        }
+        });
       } catch (e) {
         console.warn('[Gemini Ultimate] scanChatBoundaries error', e);
       }
@@ -3769,10 +3819,22 @@ const HpcTableAutofitEngine = {
     }
 
     handleScroll() {
-      this.checkMomentum(5);
+      if (!this.tickingScroll) {
+        window.requestAnimationFrame(() => {
+          this.checkMomentum(5);
+          this.tickingScroll = false;
+        });
+        this.tickingScroll = true;
+      }
     }
     handleWheel(e) {
-      this.checkMomentum(e.deltaY);
+      if (!this.tickingWheel) {
+        window.requestAnimationFrame(() => {
+          this.checkMomentum(e.deltaY);
+          this.tickingWheel = false;
+        });
+        this.tickingWheel = true;
+      }
     }
     handleTouchStart(e) {
       if (e.touches && e.touches.length > 0) {
@@ -3785,7 +3847,14 @@ const HpcTableAutofitEngine = {
       const touchY = e.touches[0].clientY;
       let dy = touchY - this.touchStartY;
       this.touchStartY = touchY;
-      this.checkMomentum(dy);
+
+      if (!this.tickingTouchMove) {
+        window.requestAnimationFrame(() => {
+          this.checkMomentum(dy);
+          this.tickingTouchMove = false;
+        });
+        this.tickingTouchMove = true;
+      }
     }
   }
 
@@ -4546,34 +4615,41 @@ const HpcTableAutofitEngine = {
 
     const debouncedScan = Utils.debounce(Processor.scan, CONFIG.DEBOUNCE_MS);
 
-    /* 統一 MutationObserver */
+    /* 統一 MutationObserver (Time-driven Batch Processing) */
+    let nodeQueue = new Set();
+    let isProcessingDOM = false;
+
+    const processDOMQueue = () => {
+      if (nodeQueue.size === 0) {
+        isProcessingDOM = false;
+        return;
+      }
+
+      nodeQueue.clear();
+
+      log("DOM changed → debounced scan (batch completed)");
+      debouncedScan();
+      isProcessingDOM = false;
+    };
+
     const observer = new MutationObserver((mutations) => {
-      let hasChanges = false;
       for (const mutation of mutations) {
         if (mutation.type !== "childList" || !mutation.addedNodes.length)
           continue;
-        hasChanges = true;
         for (const node of mutation.addedNodes) {
-          if (node.nodeType !== 1) continue;
-          /* A：code-block 容器 */
-          if (node.matches && node.matches("div.code-block"))
-            injectSmartRenderButton(node);
-          if (node.querySelectorAll)
-            node
-              .querySelectorAll("div.code-block")
-              .forEach(injectSmartRenderButton);
-          /* A：Pollinations 連結 */
-          if (node.matches && node.matches('a[href*="image.pollinations.ai"]'))
-            renderPollinationsLink(node);
-          if (node.querySelectorAll)
-            node
-              .querySelectorAll('a[href*="image.pollinations.ai"]')
-              .forEach(renderPollinationsLink);
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            nodeQueue.add(node);
+          }
         }
       }
-      if (hasChanges) {
-        log("DOM changed → debounced scan");
-        debouncedScan();
+
+      if (nodeQueue.size > 0 && !isProcessingDOM) {
+        isProcessingDOM = true;
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(processDOMQueue, { timeout: 150 });
+        } else {
+          window.requestAnimationFrame(processDOMQueue);
+        }
       }
     });
 
