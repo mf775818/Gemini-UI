@@ -1123,8 +1123,8 @@
 
 @media (max-width: 768px) {
     .tm-chat-divider {
-        margin-top: -2rem !important; /* 移動端分支預測防守：抵消原生巨大 block 間距，實現緊湊佈局 */
-        margin-bottom: 0.5rem !important;
+        margin-top: -6rem !important; /* 移動端分支預測防守：抵消原生巨大 block 間距，實現緊湊佈局 */
+        margin-bottom: 0.1rem !important;
     }
 }
 
@@ -2916,8 +2916,8 @@
         if (!overlay) {
           overlay = document.createElement("div");
           overlay.className = "tm-overlay";
-          overlay.style.paddingTop = "2%";
-          overlay.style.paddingLeft = "2%";
+          overlay.style.paddingTop = CONFIG.IS_IOS?"5.5%":"2%";
+          overlay.style.paddingLeft =  CONFIG.IS_IOS?"5.5%":"2%";
           overlay.setAttribute(ATTR_CONTAINER_PROCESSED, "true");
           overlay.setAttribute("role", "group");
           overlay.setAttribute("aria-label", "代碼操作按鈕");
