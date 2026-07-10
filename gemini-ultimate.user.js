@@ -4262,7 +4262,7 @@ const HpcTableAutofitEngine = {
           // 相對於原本位置往上平移避免被遮擋 (使用 CSS transform)
           targetBtn.style.setProperty(
             "transform",
-            "translateY(-20px)",
+            "translateY(-25px)",
             "important",
           );
           targetBtn.style.setProperty(
