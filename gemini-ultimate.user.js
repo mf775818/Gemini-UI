@@ -1101,6 +1101,15 @@
         border-radius: 4px 20px 20px 20px !important;
     }
 
+    /* 來源參考文獻 (Sources) 標題高亮顯示，去除隨機 scope class 確保廣泛匹配 */
+    .source-inline-chip-container.luminous-sources .source-title {
+        color: #00ece191 !important;
+    }
+    .source-inline-chip-container.luminous-sources {
+    border: 1px solid var(--darkreader-border-00ffff, #00ece191) !important;
+    border-radius: 6px;
+    }
+
     @media (max-width: 768px) {
         user-query, .user-query {
             max-width: 95% !important;
